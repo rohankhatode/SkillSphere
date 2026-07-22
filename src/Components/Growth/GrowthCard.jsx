@@ -5,44 +5,53 @@ function GrowthCard({
     step,
     title,
     description,
+    align,
 }) {
 
     if (type === "image") {
         return (
-            <div className="relative w-[480px] h-[430px] rounded-[24px] overflow-hidden">
+            <div className="w-[480px] h-[430px] rounded-[24px] overflow-hidden flex-shrink-0">
 
                 <img
                     src={image}
                     alt={title}
-                    className="relative w-full h-full object-cover"
+                    className="w-full h-full object-cover"
                 />
+
             </div>
         );
     }
 
     return (
-        <div className="relative w-[650px] h-[430px] rounded-[22px] text-white"
+
+        <div
+            className="w-[705px] h-[430px] rounded-[24px] text-white flex-shrink-0"
             style={{
                 backgroundImage: `url(${background})`,
                 backgroundSize: "cover",
                 backgroundPosition: "center",
-            }} >
+            }}>
 
-            <div className="text-left pl-10 pt-24 mt-4 max-w-[650px]">
+            <div className={`h-[190px] flex item-center px-14 py-24`}>
+                <div className={`max-w-[490px] ${align === "right"
+                        ? "ml-auto text-right"
+                        : "mr-auto text-left"}`}>
 
-                <p className="text-[18px] font-semibold">
-                    {step}
-                </p>
+                    <p className="text-[18px] font-bold">
+                        {step}
+                    </p>
 
-                <h2 className="mt-1 text-[48px] font-bold">
-                    {title}
-                </h2>
+                    <h2 className="mt-2 text-[48px] font-bold">
+                        {title}
+                    </h2>
 
-                <p className="mt-1 text-[22px] max-w-[460px]">
-                    {description}
-                </p>
+                    <p className="mt-4 text-[22px]">
+                        {description}
+                    </p>
+
+                </div>
+                </div>
             </div>
-        </div>
     );
 }
 
