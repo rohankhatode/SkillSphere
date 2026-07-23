@@ -1,4 +1,5 @@
 import AboutUs from "../Components/AboutUs/AboutUs";
+import Activities from "../Components/Activities/Activities";
 import CategoryCards from "../Components/CategoryCard/CategoryCards";
 import Certificate from "../Components/Certificate/Certificate";
 
@@ -19,6 +20,7 @@ function Home() {
         <Certificate />
         <Growth />
         <AboutUs />
+        <Activities />
     </>
   );
 }
