@@ -2,12 +2,13 @@ import React, { useState } from "react";
 import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
 import { FaGoogle, FaApple } from "react-icons/fa";
 import { FiSearch, FiMapPin, FiUser, FiAward } from "react-icons/fi";
-
+import { useNavigate } from "react-router-dom";
 import logo from "../../assets/icons/Vector.svg";
 import parentIllustration from "../../assets/images/login page.png";
 import bg from "../../assets/images/login img-bg.png";
 
 function Login() {
+  const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -39,6 +40,9 @@ function Login() {
     console.log("Apple login clicked");
   };
 
+  const navigateToSignup = () => {
+    navigate("/Signup");
+  };
   return (
     <div className="min-h-screen bg-white flex">
 
@@ -247,9 +251,11 @@ function Login() {
             <p className="mt-8 text-center text-[14px] text-[#4B5563]">
               Don't you have an account?{" "}
               
-              <a href="/" className="text-[#7C3AED] font-semibold">
+              <button
+                onClick={navigateToSignup}
+                className="text-[#7C3AED] font-semibold hover:underline">
                 Sign up
-              </a>
+              </button>
             </p>
           </div>
         </div>

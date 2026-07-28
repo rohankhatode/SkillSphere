@@ -1,16 +1,19 @@
+
+import { Routes, Route } from "react-router-dom";
+
+import Loading from "./pages/Home";
 import Login from "./Components/Login/Login";
 import Signup from "./Components/Signup/Signup";
 
-import Home from "./pages/Home"
-
 function App() {
   return (
-    <>
-    <Home />
-    <Login />
-    <Signup />
-    </>
+    <Routes>
+      <Route path="/" element={<Loading />} />
+      <Route path="/login" element={<Login />} />
+      <Route path="/signup" element={<Signup />} />
+    </Routes>
   );
 }
 
 export default App;
+

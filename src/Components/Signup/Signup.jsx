@@ -44,8 +44,13 @@ function Signup() {
       setError("Please enter a valid email address");
       return false;
     }
+    const phoneRegex = /^[6-9]\d{9}$/;
     if (!formData.phoneNumber.trim()) {
       setError("Phone number is required");
+      return false;
+    }
+    if (!phoneRegex.test(formData.phoneNumber.trim())) {
+      setError("Enter a valid 10-digit mobile number");
       return false;
     }
     if (!formData.password) {

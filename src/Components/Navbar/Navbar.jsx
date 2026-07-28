@@ -1,6 +1,9 @@
+import { useNavigate } from "react-router-dom";
 import { ArrowUpRight } from "iconoir-react";
 
 function Navbar() {
+  const navigate = useNavigate();
+
   return (
     <nav className="absolute top-7 left-0 w-full">
       <div className="max-w-[1440px] mx-auto flex items-center justify-between px-[75px]">
@@ -15,7 +18,7 @@ function Navbar() {
           </span>
         </div>
 
-        <button
+        <button onClick={() => navigate("/login")}
             className="flex items-center gap-3 h-[50px] rounded-full border border-white pl-[20px] 
                       pr-[5px] hover:bg-white/20">
             
