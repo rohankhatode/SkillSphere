@@ -45,7 +45,9 @@ function Login() {
       {/* Left */}
       <div className="hidden lg:flex lg:w-1/2 flex-col justify-center px-12 py-16">
         <div className="mb-10 flex">
+          
           <img src={logo} alt="SkillSphere" className="w-[32px] h-[32px]" />
+          
           <p className="pl-3 font-medium text-[24px] text-[#7C3AED]">SkillSphere</p>
         </div>
 
@@ -69,13 +71,16 @@ function Login() {
 
           <div className="mt-6 space-y-5">
             <div className="flex gap-4">
+              
               <div className="w-12 h-12 rounded-xl bg-[#F4EEFF] shadow-sm flex items-center justify-center text-[#7C3AED]">
                 <FiSearch size={22} />
               </div>
+              
               <div>
                 <h3 className="font-semibold text-[16px] text-black">
                   Discover Activities
                 </h3>
+                
                 <p className="text-[14px] text-[#6B7280]">
                   Explore verified courses and extracurricular activities
                   tailored to your child's interests.
@@ -84,6 +89,7 @@ function Login() {
             </div>
 
             <div className="flex gap-4">
+              
               <div className="w-12 h-12 rounded-xl bg-[#F4EEFF] shadow-sm flex items-center justify-center text-[#7C3AED]">
                 <FiMapPin size={22} />
               </div>
@@ -91,6 +97,7 @@ function Login() {
                 <h3 className="font-semibold text-[16px] text-black">
                   Find Trusted Providers
                 </h3>
+                
                 <p className="text-[14px] text-[#6B7280]">
                   Browse nearby institutes and compare programs with confidence.
                 </p>
@@ -98,6 +105,7 @@ function Login() {
             </div>
 
             <div className="flex gap-4">
+             
               <div className="w-12 h-12 rounded-xl bg-[#F4EEFF] shadow-sm flex items-center justify-center text-[#7C3AED]">
                 <FiUser size={22} />
               </div>
@@ -105,6 +113,7 @@ function Login() {
                 <h3 className="font-semibold text-[16px] text-black">
                   Student Profile
                 </h3>
+                
                 <p className="text-[14px] text-[#6B7280]">
                   View certificates, milestones, and learning progress in one
                   organized dashboard.
@@ -113,6 +122,7 @@ function Login() {
             </div>
 
             <div className="flex gap-4">
+              
               <div className="w-12 h-12 rounded-xl bg-[#F4EEFF] shadow-sm flex items-center justify-center text-[#7C3AED]">
                 <FiAward size={22} />
               </div>
@@ -120,6 +130,7 @@ function Login() {
                 <h3 className="font-semibold text-[16px] text-black">
                   Build a Skill Portfolio
                 </h3>
+                
                 <p className="text-[14px] text-[#6B7280]">
                   Create a lifelong portfolio that showcases every skill,
                   activity, and achievement.
@@ -149,9 +160,11 @@ function Login() {
 
             <form onSubmit={handleLogin} className="mt-8 space-y-5">
               <div>
+                
                 <label htmlFor="email" className="block text-[16px] font-semibold text-black mb-2">
                   Parent Email
                 </label>
+                
                 <input type="email" id="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Enter your email" required 
                   className="w-full h-[48px] px-4 border border-[#E8E2FF] rounded-[16px] focus:border-[#7C3AED] text-[15px] text-black placeholder:text-[#9CA3AF]"/>
               </div>
@@ -162,30 +175,24 @@ function Login() {
                 </label>
 
                 <div className="relative">
+                  
                   <input type={showPassword ? "text" : "password"} id="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="Enter your Password"
                     required
-                    className="w-full h-[48px] px-4 pr-12 border border-[#E8E2FF] rounded-[16px] outline-none focus:border-[#7C3AED] text-[15px] text-black placeholder:text-[#9CA3AF]"
-                  />
+                    className="w-full h-[48px] px-4 pr-12 border border-[#E8E2FF] rounded-[16px] outline-none focus:border-[#7C3AED] text-[15px] text-black placeholder:text-[#9CA3AF]"/>
 
                   <button type="button" onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-4 top-1/2 -translate-y-1/2 text-[#6B7280]"
-                    aria-label="Toggle password visibility"
-                  >
-                    {showPassword ? (
-                      <AiOutlineEyeInvisible size={20} />
-                    ) : (
-                      <AiOutlineEye size={20} />
-                    )}
+                    aria-label="Toggle password visibility">
+                    
+                    {showPassword ? (<AiOutlineEyeInvisible size={20} />) : (<AiOutlineEye size={20} />)}
                   </button>
                 </div>
               </div>
 
-              {error && (
-                <div className="text-red-600 text-sm font-medium">{error}</div>
-              )}
+              {error && (<div className="text-red-600 text-sm font-medium">{error}</div>)}
 
               <div className="flex items-center justify-between">
                 
@@ -212,6 +219,7 @@ function Login() {
 
             <div className="my-6 flex items-center gap-4">
               <div className="flex-1 h-px bg-[#E5E7EB]" />
+              
               <span className="text-[14px] text-[#6B7280]">
                 or continue with
               </span>
@@ -238,6 +246,7 @@ function Login() {
 
             <p className="mt-8 text-center text-[14px] text-[#4B5563]">
               Don't you have an account?{" "}
+              
               <a href="/" className="text-[#7C3AED] font-semibold">
                 Sign up
               </a>

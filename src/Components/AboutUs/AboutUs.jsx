@@ -7,7 +7,7 @@ function AboutUs() {
         <>
         <Hashtag />
         
-        <seciton className="w-full py-5">
+        <section className="w-full py-5">
 
             <div className="max-w-[1320px] mx-auto h-[480px] flex gap-[20px]">
                 <div className="w-[420px] h-[480px]">
@@ -42,7 +42,7 @@ function AboutUs() {
                     </div>
                 </div>
             </div>  
-        </seciton>
+        </section>
         </>
     )
 }
