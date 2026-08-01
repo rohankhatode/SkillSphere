@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useGoogleLogin } from "@react-oauth/google";
 import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
 import { FaGoogle, FaApple } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
@@ -74,6 +75,7 @@ function Signup() {
 
   const handleSignup = async (e) => {
     e.preventDefault();
+
     setError("");
     setSuccess("");
 
@@ -84,38 +86,117 @@ function Signup() {
     setIsLoading(true);
 
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-
-      // Store user data (in a real app, this would be sent to backend)
-      localStorage.setItem("userSignupData", JSON.stringify(formData));
-
-      setSuccess("Account created successfully!");
-      
-      // Clear form
-      setFormData({
-        fullName: "",
-        email: "",
-        phoneNumber: "",
-        password: "",
-        confirmPassword: "",
+      const response = await fetch("http://localhost:5000/api/auth/signup", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          fullName: formData.fullName,
+          email: formData.email.toLowerCase().trim(),
+          phoneNumber: formData.phoneNumber,
+          password: formData.password,
+        }),
       });
 
-      // Redirect to login after success
-      setTimeout(() => {
-        navigate("/login");
-      }, 1500);
+      const data = await response.json();
+
+      if (response.ok) {
+        setSuccess(data.message);
+
+        setFormData({
+          fullName: "",
+          email: "",
+          phoneNumber: "",
+          password: "",
+          confirmPassword: "",
+        });
+
+        setTimeout(() => {
+          navigate("/login");
+        }, 1500);
+      } else {
+        setError(data.message);
+      }
     } catch (err) {
-      setError("Signup failed. Please try again.");
+      console.log(err);
+      setError("Server is not running.");
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleGoogleSignup = () => {
-    console.log("Google signup clicked");
-    
-  };
+  const googleSignup = useGoogleLogin({
+
+      onSuccess: async (tokenResponse) => {
+
+          try {
+
+              const response = await fetch(
+                  "https://www.googleapis.com/oauth2/v3/userinfo",
+                  {
+                      headers: {
+                          Authorization: `Bearer ${tokenResponse.access_token}`,
+                      },
+                  }
+              );
+
+              const user = await response.json();
+
+              const backendResponse = await fetch(
+                  "http://localhost:5000/api/auth/google",
+                  {
+                      method: "POST",
+                      headers: {
+                          "Content-Type": "application/json",
+                      },
+                      body: JSON.stringify({
+                          fullName: user.name,
+                          email: user.email,
+                          picture: user.picture,
+                      }),
+                  }
+              );
+
+              const data = await backendResponse.json();
+
+              if (backendResponse.ok) {
+
+                  localStorage.setItem("token", data.token);
+                  localStorage.setItem("user", JSON.stringify(data.user));
+
+                  if (data.isNewUser) {
+
+                      navigate("/phone-verification");
+
+                  } else {
+
+                      navigate("/dashboard");
+
+                  }
+
+              } else {
+
+                  setError(data.message || "Google Signup Failed");
+
+              }
+
+          } catch (err) {
+
+              console.error(err);
+              setError("Unable to connect to server.");
+
+          }
+
+      },
+
+      onError: () => {
+
+          setError("Google Sign-Up Failed");
+
+      }
+
+  });
 
   const handleAppleSignup = () => {
     console.log("Apple signup clicked");
@@ -292,8 +373,16 @@ function Signup() {
                     id="phoneNumber"
                     name="phoneNumber"
                     value={formData.phoneNumber}
-                    onChange={handleChange}
+                    onChange={(e) => {
+                      const value = e.target.value.replace(/\D/g, "");
+
+                      setFormData((prev) => ({
+                        ...prev,
+                        phoneNumber: value,
+                      }));
+                    }}
                     placeholder="Enter your Phone Number"
+                    maxLength={10}
                     required
                     className="flex-1 h-[48px] px-4 border border-[#E8E2FF] rounded-[16px] focus:border-[#7C3AED] focus:outline-none text-[15px] text-black placeholder:text-[#9CA3AF] transition"/>
                 </div>
@@ -392,7 +481,7 @@ function Signup() {
                 disabled={isLoading}
                 className="w-full h-[50px] rounded-full bg-[#7C3AED] text-white font-semibold hover:bg-[#6D28D9] disabled:bg-[#9F7AEA] transition flex items-center justify-center">
                 
-                {isLoading ? "Creating Account..." : "Primary Button"}
+                {isLoading ? "Creating Account..." : "Create Account"}
               </button>
             </form>
 
@@ -407,7 +496,7 @@ function Signup() {
             <div className="space-y-3">
               <button
                 type="button"
-                onClick={handleGoogleSignup}
+                onClick={() => googleSignup()}
                 className="w-full h-[58px] rounded-full border border-[#E5E7EB] bg-white text-[#374151] font-medium flex items-center justify-center gap-3 hover:bg-[#FAFAFA] transition">
                 
                 <FaGoogle size={18} className="text-red-500" />

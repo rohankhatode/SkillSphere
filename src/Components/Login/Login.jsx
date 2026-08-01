@@ -1,4 +1,6 @@
 import React, { useState } from "react";
+import { useGoogleLogin } from "@react-oauth/google";
+import { useEffect } from "react";
 import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
 import { FaGoogle, FaApple } from "react-icons/fa";
 import { FiSearch, FiMapPin, FiUser, FiAward } from "react-icons/fi";
@@ -14,27 +16,145 @@ function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
+
+  useEffect(() => {
+
+    const token =
+        localStorage.getItem("token") ||
+        sessionStorage.getItem("token");
+
+    if(token){
+        navigate("/dashboard");
+    }
+
+  }, [navigate]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    setIsLoading(true);
     setError("");
+    setSuccess("");
 
-    try {
-    
-      setTimeout(() => {
-        setIsLoading(false);
-      }, 1000);
-    } catch (err) {
-      setError("Login failed. Please try again.");
-      setIsLoading(false);
+    if(!email.trim()){
+      setError("Email is required");
+      return;
     }
-  };
+    if(!password){
+      setError("Password is required");
+      return;
+    }
+    setIsLoading(true);
+    try{
 
-  const handleGoogleLogin = () => {
-    console.log("Google login clicked");
-  };
+      const response = await fetch("http://localhost:5000/api/auth/login",{
+
+            method:"POST",
+            headers:{"Content-Type":"application/json"},
+            body:JSON.stringify({
+                email: email.toLowerCase().trim(),
+                password
+            })
+        });
+
+      const data = await response.json();
+
+        if(response.ok){
+          if(rememberMe){
+            localStorage.setItem("token",data.token);
+            localStorage.setItem("user",JSON.stringify(data.user));
+          }
+          else{
+            sessionStorage.setItem("token",data.token);
+            sessionStorage.setItem("user",JSON.stringify(data.user));
+          }
+            setSuccess("Login Successful");
+
+            setTimeout(()=>{
+              navigate("/dashboard");
+            },1000);
+        }
+        else{
+            setError(data.message || "Login Failed");
+        }
+    }
+    catch(err){
+        console.error(err);
+        setError("Server Error");
+    }
+
+    finally{
+        setIsLoading(false);
+    }
+}
+
+  const googleLogin = useGoogleLogin({
+    onSuccess: async (tokenResponse) => {
+      try {
+        setError("");
+        setSuccess("");
+
+        // Get Google user details
+        const googleResponse = await fetch(
+          "https://www.googleapis.com/oauth2/v3/userinfo",
+          {
+            headers: {
+              Authorization: `Bearer ${tokenResponse.access_token}`,
+            },
+          }
+        );
+
+        const user = await googleResponse.json();
+
+        // Send user to backend
+        const backendResponse = await fetch(
+          "http://localhost:5000/api/auth/google",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              fullName: user.name,
+              email: user.email,
+            }),
+          }
+        );
+
+        const data = await backendResponse.json();
+
+        if (backendResponse.ok) {
+
+            if (rememberMe) {
+                localStorage.setItem("token", data.token);
+                localStorage.setItem("user", JSON.stringify(data.user));
+            } else {
+                sessionStorage.setItem("token", data.token);
+                sessionStorage.setItem("user", JSON.stringify(data.user));
+            }
+
+            if (data.isNewUser) {
+                navigate("/phone-verification");
+            } else {
+                navigate("/dashboard");
+            }
+
+        } else {
+            setError(data.message || "Google Login Failed");
+        }
+
+      } catch (err) {
+          console.error(err);
+          setError("Unable to connect to server.");
+      }
+    },
+
+    onError: () => {
+
+      setError("Google Login Cancelled");
+
+    },
+  });
 
   const handleAppleLogin = () => {
     console.log("Apple login clicked");
@@ -169,8 +289,13 @@ function Login() {
                   Parent Email
                 </label>
                 
-                <input type="email" id="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Enter your email" required 
-                  className="w-full h-[48px] px-4 border border-[#E8E2FF] rounded-[16px] focus:border-[#7C3AED] text-[15px] text-black placeholder:text-[#9CA3AF]"/>
+                <input 
+                type="email" 
+                id="email" 
+                value={email} 
+                onChange={(e) => setEmail(e.target.value)} 
+                placeholder="Enter your email" required 
+                className="w-full h-[48px] px-4 border border-[#E8E2FF] rounded-[16px] focus:border-[#7C3AED] text-[15px] text-black placeholder:text-[#9CA3AF]"/>
               </div>
 
               <div>
@@ -196,7 +321,9 @@ function Login() {
                 </div>
               </div>
 
-              {error && (<div className="text-red-600 text-sm font-medium">{error}</div>)}
+              {error && (<p className="text-red-600 text-sm font-medium">{error}</p>)}
+
+              {success && (<p className="text-green-600 text-sm font-medium">{success}</p>)}
 
               <div className="flex items-center justify-between">
                 
@@ -210,14 +337,17 @@ function Login() {
                   </span>
                 </label>
 
-                <a href="/" className="text-[14px] text-[#3B82F6] hover:underline">
+                <button
+                type="button"
+                onClick={()=>navigate("/forgot-password")}
+                className="text-[14px] text-[#3B82F6] hover:underline">
                   Forgot password?
-                </a>
+                </button>
               </div>
 
               <button type="submit" disabled={isLoading}
                 className="w-full h-[50px] rounded-full bg-[#7C3AED] text-white font-semibold hover:bg-[#6D28D9] transition flex items-center justify-center">
-                {isLoading ? "Logging in..." : "Login"}
+                {isLoading ? "Logging in..." : "Log In"}
               </button>
             </form>
 
@@ -231,7 +361,7 @@ function Login() {
             </div>
 
             <div className="space-y-3">
-              <button type="button" onClick={handleGoogleLogin}
+              <button type="button" onClick={() => googleLogin()}
                 className="w-full h-[58px] rounded-full border border-[#E5E7EB] bg-white text-[#374151] font-medium flex items-center justify-center gap-3 hover:bg-[#FAFAFA]">
                 
                 <FaGoogle size={18} className="text-red-500" />
