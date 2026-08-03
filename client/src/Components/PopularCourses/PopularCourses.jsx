@@ -6,7 +6,7 @@ import technology from "../../assets/icons/technology.svg";
 import coding from "../../assets/icons/coding.svg";
 import music from "../../assets/icons/music.svg";
 import robotics from "../../assets/icons/robotics.svg";
-import CourseCard from "../CourseCard/CourseCard";
+import CourseCard from "./CourseCard";
 import course1 from "../../assets/images/course1.png";
 import course2 from "../../assets/images/course2.png";
 import course3 from "../../assets/images/course3.png";
