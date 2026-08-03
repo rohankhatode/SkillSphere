@@ -1,0 +1,397 @@
+import React, { useState } from "react";
+import { useGoogleLogin } from "@react-oauth/google";
+import { useEffect } from "react";
+import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
+import { FaGoogle, FaApple } from "react-icons/fa";
+import { FiSearch, FiMapPin, FiUser, FiAward } from "react-icons/fi";
+import { useNavigate } from "react-router-dom";
+import logo from "../assets/icons/Vector.svg";
+import parentIllustration from "../assets/images/login page.png";
+import bg from "../assets/images/login img-bg.png";
+
+function Login() {
+  const navigate = useNavigate();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const [rememberMe, setRememberMe] = useState(false);
+
+  useEffect(() => {
+
+    const token =
+        localStorage.getItem("token") ||
+        sessionStorage.getItem("token");
+
+    if(token){
+        navigate("/dashboard");
+    }
+
+  }, [navigate]);
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setError("");
+    setSuccess("");
+
+    if(!email.trim()){
+      setError("Email is required");
+      return;
+    }
+    if(!password){
+      setError("Password is required");
+      return;
+    }
+    setIsLoading(true);
+    try{
+
+      const response = await fetch("http://localhost:5000/api/auth/login",{
+
+            method:"POST",
+            headers:{"Content-Type":"application/json"},
+            body:JSON.stringify({
+                email: email.toLowerCase().trim(),
+                password
+            })
+        });
+
+      const data = await response.json();
+
+        if(response.ok){
+          if(rememberMe){
+            localStorage.setItem("token",data.token);
+            localStorage.setItem("user",JSON.stringify(data.user));
+          }
+          else{
+            sessionStorage.setItem("token",data.token);
+            sessionStorage.setItem("user",JSON.stringify(data.user));
+          }
+            setSuccess("Login Successful");
+
+            setTimeout(()=>{
+              navigate("/dashboard");
+            },1000);
+        }
+        else{
+            setError(data.message || "Login Failed");
+        }
+    }
+    catch(err){
+        console.error(err);
+        setError("Server Error");
+    }
+
+    finally{
+        setIsLoading(false);
+    }
+}
+
+  const googleLogin = useGoogleLogin({
+    onSuccess: async (tokenResponse) => {
+      try {
+        setError("");
+        setSuccess("");
+
+        // Get Google user details
+        const googleResponse = await fetch(
+          "https://www.googleapis.com/oauth2/v3/userinfo",
+          {
+            headers: {
+              Authorization: `Bearer ${tokenResponse.access_token}`,
+            },
+          }
+        );
+
+        const user = await googleResponse.json();
+
+        // Send user to backend
+        const backendResponse = await fetch(
+          "http://localhost:5000/api/auth/google",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              fullName: user.name,
+              email: user.email,
+            }),
+          }
+        );
+
+        const data = await backendResponse.json();
+
+        if (backendResponse.ok) {
+
+            if (rememberMe) {
+                localStorage.setItem("token", data.token);
+                localStorage.setItem("user", JSON.stringify(data.user));
+            } else {
+                sessionStorage.setItem("token", data.token);
+                sessionStorage.setItem("user", JSON.stringify(data.user));
+            }
+
+            if (data.isNewUser) {
+                navigate("/phone-verification");
+            } else {
+                navigate("/dashboard");
+            }
+
+        } else {
+            setError(data.message || "Google Login Failed");
+        }
+
+      } catch (err) {
+          console.error(err);
+          setError("Unable to connect to server.");
+      }
+    },
+
+    onError: () => {
+
+      setError("Google Login Cancelled");
+
+    },
+  });
+
+  const handleAppleLogin = () => {
+    console.log("Apple login clicked");
+  };
+
+  const navigateToSignup = () => {
+    navigate("/Signup");
+  };
+  return (
+    <div className="min-h-screen bg-white flex">
+
+      {/* Left */}
+      <div className="hidden lg:flex lg:w-1/2 flex-col justify-center px-12 py-16">
+        <div className="mb-10 flex">
+          
+          <img src={logo} alt="SkillSphere" className="w-[32px] h-[32px]" />
+          
+          <p className="pl-3 font-medium text-[24px] text-[#7C3AED]">SkillSphere</p>
+        </div>
+
+        <p className="text-[#7C3AED] font-semibold text-[16px] mb-4">
+          Welcome Back!
+        </p>
+
+        <h1 className="text-[48px] font-bold leading-[1.1] text-black max-w-[650px]">
+          Continue Your{" "}
+          <span className="text-[#7C3AED]">Child's Growth</span> Journey
+        </h1>
+
+        <p className="mt-6 text-[20px] leading-8 text-[#6B7280] max-w-[650px]">
+          Sign in to discover new activities, manage certificates, track
+          learning progress, and build your child's Skill Portfolio—all in one
+          secure place.
+        </p>
+
+        <div className="mt-8">
+          <h5 className="text-[28px] font-bold text-black">What You Can Do</h5>
+
+          <div className="mt-6 space-y-5">
+            <div className="flex gap-4">
+              
+              <div className="w-12 h-12 rounded-xl bg-[#F4EEFF] shadow-sm flex items-center justify-center text-[#7C3AED]">
+                <FiSearch size={22} />
+              </div>
+              
+              <div>
+                <h3 className="font-semibold text-[16px] text-black">
+                  Discover Activities
+                </h3>
+                
+                <p className="text-[14px] text-[#6B7280]">
+                  Explore verified courses and extracurricular activities
+                  tailored to your child's interests.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex gap-4">
+              
+              <div className="w-12 h-12 rounded-xl bg-[#F4EEFF] shadow-sm flex items-center justify-center text-[#7C3AED]">
+                <FiMapPin size={22} />
+              </div>
+              <div>
+                <h3 className="font-semibold text-[16px] text-black">
+                  Find Trusted Providers
+                </h3>
+                
+                <p className="text-[14px] text-[#6B7280]">
+                  Browse nearby institutes and compare programs with confidence.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex gap-4">
+             
+              <div className="w-12 h-12 rounded-xl bg-[#F4EEFF] shadow-sm flex items-center justify-center text-[#7C3AED]">
+                <FiUser size={22} />
+              </div>
+              <div>
+                <h3 className="font-semibold text-[16px] text-black">
+                  Student Profile
+                </h3>
+                
+                <p className="text-[14px] text-[#6B7280]">
+                  View certificates, milestones, and learning progress in one
+                  organized dashboard.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex gap-4">
+              
+              <div className="w-12 h-12 rounded-xl bg-[#F4EEFF] shadow-sm flex items-center justify-center text-[#7C3AED]">
+                <FiAward size={22} />
+              </div>
+              <div>
+                <h3 className="font-semibold text-[16px] text-black">
+                  Build a Skill Portfolio
+                </h3>
+                
+                <p className="text-[14px] text-[#6B7280]">
+                  Create a lifelong portfolio that showcases every skill,
+                  activity, and achievement.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="relative w-[540px] h-[290px] mt-10">
+
+          <img src={bg} alt="" className="w-full max-w-[590px] h-[300px] object-contain" />
+
+          <img src={parentIllustration} alt="Parent and child" className="absolute top-1 left-1 w-full max-w-[530px] h-[290px] object-contain"/>
+        </div>
+      </div>
+
+      {/* Right */}
+      <div className="w-full lg:w-1/2 flex items-start justify-center px-4 sm:px-6 lg:px-12 py-10 lg:py-16">
+        <div className="w-full max-w-[650px] mt-16">
+          
+
+          <div className="w-full rounded-[24px] border border-[#E8E2FF] p-6 sm:p-8 lg:p-10">
+            <h3 className="text-[38px] lg:text-[40px] font-bold text-black">
+              Login to your account
+            </h3>
+
+            <form onSubmit={handleLogin} className="mt-8 space-y-5">
+              <div>
+                
+                <label htmlFor="email" className="block text-[16px] font-semibold text-black mb-2">
+                  Parent Email
+                </label>
+                
+                <input 
+                type="email" 
+                id="email" 
+                value={email} 
+                onChange={(e) => setEmail(e.target.value)} 
+                placeholder="Enter your email" required 
+                className="w-full h-[48px] px-4 border border-[#E8E2FF] rounded-[16px] focus:border-[#7C3AED] text-[15px] text-black placeholder:text-[#9CA3AF]"/>
+              </div>
+
+              <div>
+                <label htmlFor="password" className="block text-[16px] font-semibold text-black mb-2" >
+                  Password
+                </label>
+
+                <div className="relative">
+                  
+                  <input type={showPassword ? "text" : "password"} id="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Enter your Password"
+                    required
+                    className="w-full h-[48px] px-4 pr-12 border border-[#E8E2FF] rounded-[16px] outline-none focus:border-[#7C3AED] text-[15px] text-black placeholder:text-[#9CA3AF]"/>
+
+                  <button type="button" onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-[#6B7280]"
+                    aria-label="Toggle password visibility">
+                    
+                    {showPassword ? (<AiOutlineEyeInvisible size={20} />) : (<AiOutlineEye size={20} />)}
+                  </button>
+                </div>
+              </div>
+
+              {error && (<p className="text-red-600 text-sm font-medium">{error}</p>)}
+
+              {success && (<p className="text-green-600 text-sm font-medium">{success}</p>)}
+
+              <div className="flex items-center justify-between">
+                
+                <label className="flex items-center gap-2 cursor-pointer">
+                  
+                  <input type="checkbox" checked={rememberMe} onChange={(e) => setRememberMe(e.target.checked)}
+                    className="w-4 h-4 rounded border-[#D1D5DB] text-[#7C3AED] focus:ring-[#7C3AED]"/>
+                  
+                  <span className="text-[14px] text-[#374151]">
+                    Remember me
+                  </span>
+                </label>
+
+                <button
+                type="button"
+                onClick={()=>navigate("/forgot-password")}
+                className="text-[14px] text-[#3B82F6] hover:underline">
+                  Forgot password?
+                </button>
+              </div>
+
+              <button type="submit" disabled={isLoading}
+                className="w-full h-[50px] rounded-full bg-[#7C3AED] text-white font-semibold hover:bg-[#6D28D9] transition flex items-center justify-center">
+                {isLoading ? "Logging in..." : "Log In"}
+              </button>
+            </form>
+
+            <div className="my-6 flex items-center gap-4">
+              <div className="flex-1 h-px bg-[#E5E7EB]" />
+              
+              <span className="text-[14px] text-[#6B7280]">
+                or continue with
+              </span>
+              <div className="flex-1 h-px bg-[#E5E7EB]" />
+            </div>
+
+            <div className="space-y-3">
+              <button type="button" onClick={() => googleLogin()}
+                className="w-full h-[58px] rounded-full border border-[#E5E7EB] bg-white text-[#374151] font-medium flex items-center justify-center gap-3 hover:bg-[#FAFAFA]">
+                
+                <FaGoogle size={18} className="text-red-500" />
+                
+                <span>Continue with Google</span>
+              </button>
+
+              <button type="button" onClick={handleAppleLogin}
+                className="w-full h-[58px] rounded-full bg-black text-white font-medium flex items-center justify-center gap-3 hover:bg-[#111111]">
+                
+                <FaApple size={20} />
+                
+                <span>Continue with Apple</span>
+              </button>
+            </div>
+
+            <p className="mt-8 text-center text-[14px] text-[#4B5563]">
+              Don't you have an account?{" "}
+              
+              <button
+                onClick={navigateToSignup}
+                className="text-[#7C3AED] font-semibold hover:underline">
+                Sign up
+              </button>
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default Login;
