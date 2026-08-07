@@ -1,5 +1,5 @@
 const User = require("../model/User");
-const jwt = require("jsonwebtoken");
+const generateToken = require("../utils/generateToken");
 
 const googleAuth = async (req, res) => {
 
@@ -7,9 +7,25 @@ const googleAuth = async (req, res) => {
 
         const { fullName, email, picture } = req.body;
 
+        if (!fullName || !email) {
+            return res.status(400).json({
+                success: false,
+                message: "Full name and email are required."
+            });
+        }
+
+        const normalizedEmail = email.trim().toLowerCase();
+
         let user = await User.findOne({
-            email: email.toLowerCase()
+            email: normalizedEmail
         });
+
+        if (user && user.provider === "local") {
+            return res.status(400).json({
+                success: false,
+                message: "This email is already registered using Email & Password."
+            });
+        }
 
         let isNewUser = false;
 
@@ -17,55 +33,42 @@ const googleAuth = async (req, res) => {
 
             isNewUser = true;
 
-            user = new User({
-                fullName,
-                email: email.toLowerCase(),
-
-                // Temporary values until onboarding
+            user = await User.create({
+                fullName: fullName.trim(),
+                email: normalizedEmail,
                 phoneNumber: "",
                 password: "",
-
                 provider: "google",
-                profilePicture: picture
+                profilePicture: picture || ""
             });
 
-            await user.save();
         }
 
-        const token = jwt.sign(
-            {
-                id: user._id,
-                email: user.email
-            },
-            process.env.JWT_SECRET,
-            {
-                expiresIn: "1d"
-            }
-        );
+        const token = generateToken(user);
 
-        res.json({
-
-            message: "Google Login Successful",
-
+        res.status(200).json({
+            success: true,
+            message: isNewUser
+                ? "Google Signup Successful"
+                : "Google Login Successful",
             token,
-
             isNewUser,
-
             user: {
                 id: user._id,
                 fullName: user.fullName,
-                email: user.email
+                email: user.email,
+                provider: user.provider,
+                profilePicture: user.profilePicture
             }
-
         });
 
-    }
-    catch (err) {
+    } catch (err) {
 
-        console.log(err);
+        console.error(err);
 
         res.status(500).json({
-            message: "Google Login Failed"
+            success: false,
+            message: "Google Authentication Failed"
         });
 
     }

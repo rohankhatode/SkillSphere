@@ -5,27 +5,75 @@ import goals from "../data/goals";
 import logo from "../assets/icons/Vector.svg";
 import { HiArrowRight } from "react-icons/hi";
 import { HiArrowLeft } from "react-icons/hi";
+import API_URL from "../config/api";
 
 function Goals() {
   const navigate = useNavigate();
 
-  const [selectedInterests, setSelectedInterests] = useState([]);
+  const [selectedGoals, setSelectedGoals] = useState([]);
 
   const handleSelect = (title) => {
-    if (selectedInterests.includes(title)) {
-      setSelectedInterests(
-        selectedInterests.filter((item) => item !== title)
+    if (selectedGoals.includes(title)) {
+      setSelectedGoals(
+        selectedGoals.filter((item) => item !== title)
       );
     } else {
-      setSelectedInterests([...selectedInterests, title]);
+      setSelectedGoals([...selectedGoals, title]);
     }
   };
 
-  const handleNext = () => {
-    console.log(selectedInterests);
+ const handleNext = async () => {
+
+  if (selectedGoals.length === 0) {
+    alert("Please select at least one goal.");
+    return;
+  }
+
+  const childId = localStorage.getItem("childId");
+
+  if (!childId) {
+    alert("Child not found.");
+    navigate("/add-child");
+    return;
+  }
+
+  const token =
+    localStorage.getItem("token") ||
+    sessionStorage.getItem("token");
+
+  try {
+
+    const response = await fetch(
+      `${API_URL}/child/goals/${childId}`,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          goals: selectedGoals,
+        }),
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message);
+    }
+
+    localStorage.removeItem("childId");
 
     navigate("/recommended");
-  };
+
+  } catch (err) {
+
+    console.error(err);
+    alert(err.message || "Unable to save goals.");
+
+  }
+};
 
   return (
     <div className="min-h-screen bg-[#FAFBFF]">
@@ -77,7 +125,7 @@ function Goals() {
           {goals.map((goal) => {
 
             const selected =
-              selectedInterests.includes(goal.title);
+              selectedGoals.includes(goal.title);
 
             return (
 

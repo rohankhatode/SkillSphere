@@ -1,6 +1,6 @@
 import { Icon } from "@iconify/react";
 import heroBg from "../../assets/images/hero-bg.png";
-import Navbar from "../Navbar/Navbar";
+import Navbar from "../Home/Navbar";
 
 function Hero() {
   return (

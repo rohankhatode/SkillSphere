@@ -1,211 +1,179 @@
+const generateToken = require("../utils/generateToken");
+
 const bcrypt = require("bcrypt");
-const jwt = require("jsonwebtoken");
 const User = require("../model/User");
+const { sign } = require("jsonwebtoken");
 
+// Check if user already exists
+const checkUser = async (req, res) => {
+  try {
+    const { email, phoneNumber } = req.body;
+
+    const user = await User.findOne({
+      $or: [
+        { email },
+        { phoneNumber }
+      ]
+    });
+
+    if (user) {
+      return res.json({
+        exists: true,
+        message: "Account already exists."
+      });
+    }
+
+    res.json({
+      exists: false
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      message: error.message
+    });
+  }
+};
+
+// =======================
 // Signup Controller
+// =======================
 const signup = async (req, res) => {
-    try {
 
-        const { fullName, email, phoneNumber, password } = req.body;
+  try {
 
-        const normalizedEmail = email.trim().toLowerCase();
+    const {
+      fullName,
+      email,
+      phoneNumber,
+      password
+    } = req.body;
 
-        const existingUser = await User.findOne({
-            email: normalizedEmail,
-        });
+    const existingEmail = await User.findOne({ email });
 
-        if (existingUser) {
+        if (existingEmail) {
             return res.status(400).json({
-                message: "Email already exists",
+                success: false,
+                message: "Email already exists.",
             });
         }
 
-        const hashedPassword = await bcrypt.hash(password, 10);
+        const existingPhone = await User.findOne({ phoneNumber });
 
-        const user = new User({
-            fullName,
-            email: normalizedEmail,
-            phoneNumber,
-            password: hashedPassword,
-        });
+        if (existingPhone) {
+            return res.status(400).json({
+                success: false,
+                message: "Phone number already exists.",
+            });
+        }
 
-        await user.save();
+    const hashedPassword =
+      await bcrypt.hash(password, 10);
+    const normalizedEmail = email.trim().toLowerCase();
+    const user = new User({
+
+      fullName,
+      email: normalizedEmail,
+      phoneNumber,
+      password: hashedPassword,
+      phoneVerified: true,
+
+    });
+
+    await user.save();
+
+    const token = generateToken(user);
 
         res.status(201).json({
-            message: "Signup Successful",
-            user,
+            success: true,
+            message: "Account created successfully.",
+            token,
+            user: {
+                id: user._id,
+                fullName: user.fullName,
+                email: user.email,
+                phoneNumber: user.phoneNumber,
+            },
         });
 
-    } catch (err) {
+  } catch (error) {
 
-        console.log(err);
+    res.status(500).json({
+      message: error.message
+    });
 
-        res.status(500).json({
-            message: err.message,
-        });
+  }
 
-    }
 };
 
+// =======================
 // Login Controller
+// =======================
 const login = async (req, res) => {
-
     try {
 
         const { email, password } = req.body;
+
+        if (!email || !password) {
+            return res.status(400).json({
+                success: false,
+                message: "Email and password are required.",
+            });
+        }
 
         const normalizedEmail = email.trim().toLowerCase();
 
         const user = await User.findOne({
             email: normalizedEmail,
-        });
-
+        })
+        console.log("User Found:", user);
         if (!user) {
             return res.status(400).json({
+                success: false,
                 message: "Invalid Email or Password",
             });
         }
+
         if (user.provider === "google") {
             return res.status(400).json({
-                message: "This account uses Google Sign-In. Please continue with Google."
+                success: false,
+                message:
+                    "This account uses Google Sign-In. Please continue with Google.",
             });
         }
 
-        const match = await bcrypt.compare(
+        const isMatch = await bcrypt.compare(
             password,
             user.password
         );
 
-        if (!match) {
+        if (!isMatch) {
             return res.status(400).json({
+                success: false,
                 message: "Invalid Email or Password",
             });
         }
 
-        const token = jwt.sign(
-            {
-                id: user._id,
-                email: user.email,
-            },
-            process.env.JWT_SECRET,
-            {
-                expiresIn: "1d",
-            }
-        );
+        const token = generateToken(user);
 
         res.status(200).json({
+            success: true,
             message: "Login Successful",
             token,
             user: {
                 id: user._id,
                 fullName: user.fullName,
                 email: user.email,
-                provider: user.provider
+                provider: user.provider,
             },
         });
 
     } catch (err) {
 
-        console.log(err);
+        console.error(err);
 
         res.status(500).json({
-            message: "Server Error",
-        });
-
-    }
-};
-
-// Google Login Controller
-const googleAuth = async (req, res) => {
-    try {
-
-        const { fullName, email } = req.body;
-
-        const normalizedEmail = email.trim().toLowerCase();
-
-        let user = await User.findOne({
-            email: normalizedEmail,
-        });
-
-        // If user doesn't exist, create one
-        if (!user) {
-
-            const hashedPassword = await bcrypt.hash("GOOGLE_ACCOUNT", 10);
-            user = new User({
-                fullName,
-                email: normalizedEmail,
-                phoneNumber: "",
-                password: hashedPassword,
-                provider: "google",
-                phoneVerified: false
-            });
-
-            await user.save();
-
-            const token = jwt.sign(
-                {
-                    id: user._id,
-                    email: user.email,
-                },
-                process.env.JWT_SECRET,
-                {
-                    expiresIn: "1d",
-                }
-            );
-
-            return res.status(200).json({
-
-                message: "Google Signup Successful",
-
-                isNewUser: true,
-
-                token,
-
-                user: {
-                    id: user._id,
-                    fullName: user.fullName,
-                    email: user.email,
-                    provider: user.provider,
-                }
-            });
-
-        }
-
-        // Existing user
-        const token = jwt.sign(
-            {
-                id: user._id,
-                email: user.email,
-            },
-            process.env.JWT_SECRET,
-            {
-                expiresIn: "1d",
-            }
-        );
-
-        return res.status(200).json({
-
-            message: "Google Login Successful",
-
-            isNewUser: false,
-
-            token,
-
-            user: {
-                id: user._id,
-                fullName: user.fullName,
-                email: user.email,
-                provider: user.provider,
-            }
-        });
-
-    }
-    catch (err) {
-
-        console.log(err);
-
-        res.status(500).json({
-            message: "Google Login Failed",
+            success: false,
+            message: "Internal Server Error",
         });
 
     }
@@ -214,5 +182,5 @@ const googleAuth = async (req, res) => {
 module.exports = {
     signup,
     login,
-    googleAuth,
+    checkUser
 };

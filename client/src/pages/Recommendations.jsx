@@ -1,5 +1,5 @@
 
-import CourseCard from "../Components/PopularCourses/CourseCard";
+import CourseCard from "../Components/Home/CourseCard";
 import course1 from "../assets/images/course1.png";
 import course2 from "../assets/images/course2.png";
 import course3 from "../assets/images/course3.png";

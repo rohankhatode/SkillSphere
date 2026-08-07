@@ -4,23 +4,49 @@ import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
 import { FaGoogle, FaApple } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import logo from "../assets/icons/Vector.svg";
-import signupIllustration from "../assets/images/login page.png";
+import signupIllustration from "../assets/images/signup.png";
+import API_URL from "../config/api";
+// import {
+//   RecaptchaVerifier,
+//   signInWithPhoneNumber,
+// } from "firebase/auth";
+// import { auth } from "../firebase/firebase";
+
+
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+const PHONE_REGEX = /^[6-9]\d{9}$/;
+
+// Minimum 8 characters
+// At least 1 uppercase
+// At least 1 lowercase
+// At least 1 number
+const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
+
+const NAME_REGEX = /^[A-Za-z]+(?:\s[A-Za-z]+)*$/;
 
 function Signup() {
+
   const navigate = useNavigate();
-  const [formData, setFormData] = useState({
-    fullName: "",
-    email: "",
-    phoneNumber: "",
-    password: "",
-    confirmPassword: "",
-  });
+
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
   const [agreeToTerms, setAgreeToTerms] = useState(false);
+
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+
+  const initialFormData = {
+      fullName: "",
+      email: "",
+      phoneNumber: "",
+      password: "",
+      confirmPassword: "",
+    };
+
+    const [formData, setFormData] = useState(initialFormData);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -28,48 +54,76 @@ function Signup() {
       ...prev,
       [name]: value,
     }));
-    setError("");
+    if (error) setError("");
+    if (success) setSuccess("");
+  };
+
+  const handlePhoneChange = ({ target }) => {
+
+    const numbersOnly = target.value
+      .replace(/\D/g, "")
+      .slice(0, 10);
+
+    setFormData((prev) => ({
+      ...prev,
+      phoneNumber: numbersOnly,
+    }));
+
+    if (error) setError("");
   };
 
   const validateForm = () => {
-    if (!formData.fullName.trim()) {
-      setError("Full name is required");
+
+    const fullName = formData.fullName.trim();
+
+    const email = formData.email.trim().toLowerCase();
+
+    const phone = formData.phoneNumber.trim();
+
+    if (!fullName) {
+      setError("Full name is required.");
       return false;
     }
-    if (!formData.email.trim()) {
-      setError("Email is required");
+
+    if (!NAME_REGEX.test(fullName)) {
+      setError("Please enter a valid full name.");
       return false;
     }
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(formData.email)) {
-      setError("Please enter a valid email address");
+
+    if (!email) {
+      setError("Email is required.");
       return false;
     }
-    const phoneRegex = /^[6-9]\d{9}$/;
-    if (!formData.phoneNumber.trim()) {
-      setError("Phone number is required");
+
+    if (!EMAIL_REGEX.test(email)) {
+      setError("Please enter a valid email address.");
       return false;
     }
-    if (!phoneRegex.test(formData.phoneNumber.trim())) {
-      setError("Enter a valid 10-digit mobile number");
+
+    if (!PHONE_REGEX.test(phone)) {
+      setError("Please enter a valid 10-digit mobile number.");
       return false;
     }
-    if (!formData.password) {
-      setError("Password is required");
+
+    if (!PASSWORD_REGEX.test(formData.password)) {
+      setError(
+        "Password must contain at least 8 characters, one uppercase letter, one lowercase letter and one number."
+      );
       return false;
     }
-    if (formData.password.length < 8) {
-      setError("Password must be at least 8 characters long");
-      return false;
-    }
+
     if (formData.password !== formData.confirmPassword) {
-      setError("Passwords do not match");
+      setError("Passwords do not match.");
       return false;
     }
+
     if (!agreeToTerms) {
-      setError("You must agree to the Terms of Service and Privacy Policy");
+      setError(
+        "Please accept the Terms of Service and Privacy Policy."
+      );
       return false;
     }
+
     return true;
   };
 
@@ -86,38 +140,28 @@ function Signup() {
     setIsLoading(true);
 
     try {
-      const response = await fetch("https://skill-sphere-api.vercel.app/api/auth/signup", {
+       // Check whether user already exists
+      const response = await fetch(`${API_URL}/auth/check-user`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          fullName: formData.fullName,
           email: formData.email.toLowerCase().trim(),
           phoneNumber: formData.phoneNumber,
-          password: formData.password,
         }),
       });
 
       const data = await response.json();
 
-      if (response.ok) {
-        setSuccess(data.message);
-
-        setFormData({
-          fullName: "",
-          email: "",
-          phoneNumber: "",
-          password: "",
-          confirmPassword: "",
-        });
-
-        setTimeout(() => {
-          navigate("/login");
-        }, 1500);
-      } else {
-        setError(data.message);
+      if (data.exists) {
+        setError("Account already exists. Please login.");
+        return;
       }
+
+      // Send OTP
+      await sendOTP();
+
     } catch (err) {
       console.log(err);
       setError("Server is not running.");
@@ -128,74 +172,65 @@ function Signup() {
 
   const googleSignup = useGoogleLogin({
 
-      onSuccess: async (tokenResponse) => {
+    onSuccess: async (tokenResponse) => {
+      try {
+        const response = await fetch(
+            "https://www.googleapis.com/oauth2/v3/userinfo",
+            {
+                headers: {
+                    Authorization: `Bearer ${tokenResponse.access_token}`,
+                },
+            }
+        );
 
-          try {
+        const user = await response.json();
 
-              const response = await fetch(
-                  "https://www.googleapis.com/oauth2/v3/userinfo",
-                  {
-                      headers: {
-                          Authorization: `Bearer ${tokenResponse.access_token}`,
-                      },
-                  }
-              );
+        const backendResponse = await fetch(`${API_URL}/auth/google`,
+            {
+              method: "POST",
+              headers: {
+                  "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                  fullName: user.name,
+                  email: user.email,
+                  picture: user.picture,
+              }),
+            }
+        );
 
-              const user = await response.json();
+        const data = await backendResponse.json();
 
-              const backendResponse = await fetch(
-                  "https://skill-sphere-api.vercel.app/api/auth/google",
-                  {
-                      method: "POST",
-                      headers: {
-                          "Content-Type": "application/json",
-                      },
-                      body: JSON.stringify({
-                          fullName: user.name,
-                          email: user.email,
-                          picture: user.picture,
-                      }),
-                  }
-              );
+        if (!backendResponse.ok) {
+          throw new Error(
+              data.message || "Google Authentication Failed"
+          );
+        }
 
-              const data = await backendResponse.json();
+        localStorage.setItem("token", data.token);
 
-              if (backendResponse.ok) {
+        localStorage.setItem(
+            "user",
+            JSON.stringify(data.user)
+        );
 
-                  localStorage.setItem("token", data.token);
-                  localStorage.setItem("user", JSON.stringify(data.user));
+        navigate(
+          data.isNewUser
+              ? "/phone-verification"
+              : "/dashboard"
+        );
+      } catch (err) {
+          console.error(err);
 
-                  if (data.isNewUser) {
-
-                      navigate("/phone-verification");
-
-                  } else {
-
-                      navigate("/dashboard");
-
-                  }
-
-              } else {
-
-                  setError(data.message || "Google Signup Failed");
-
-              }
-
-          } catch (err) {
-
-              console.error(err);
-              setError("Unable to connect to server.");
-
-          }
-
-      },
-
-      onError: () => {
-
-          setError("Google Sign-Up Failed");
-
-      }
-
+          setError(
+            err.message ||
+            "Unable to connect to server."
+          );
+        }
+    },
+    onError: () => {
+      setError("Google Sign-Up Failed");
+    }
   });
 
   const handleAppleSignup = () => {
@@ -206,6 +241,74 @@ function Signup() {
   const navigateToLogin = () => {
     navigate("/login");
   };
+
+  // const setupRecaptcha = () => {
+  //   if (!window.recaptchaVerifier) {
+  //     window.recaptchaVerifier =
+  //       new RecaptchaVerifier(
+  //         auth,
+  //         "recaptcha-container",
+  //           {
+  //             size: "invisible",
+  //           }
+  //       );
+  //   }
+  // };
+
+  // const sendOTP = async () => {
+  //   setupRecaptcha();
+  //   setIsLoading(true);
+  //   const phoneNumber = "+91" + formData.phoneNumber;
+
+  //   try {
+  //     const confirmation = await signInWithPhoneNumber(
+  //       auth,
+  //       phoneNumber,
+  //       window.recaptchaVerifier
+  //     );
+
+  //     window.confirmationResult = confirmation;
+
+  //     localStorage.setItem(
+  //       "signupData",
+  //       JSON.stringify({
+  //           fullName: formData.fullName,
+  //           email: formData.email,
+  //           phoneNumber: formData.phoneNumber,
+  //           password: formData.password
+  //       })
+  //   );
+        
+  //     navigate("/otp");
+  //   } catch (error) {
+  //     console.log(error);
+  //     alert(error.message);
+  //     localStorage.removeItem("signupData");
+  //   }
+  //   finally {
+  //     setIsLoading(false);
+  //   }
+  // };
+
+  const sendOTP = async () => {
+
+    localStorage.setItem(
+    "signupData",
+    JSON.stringify({
+      fullName: formData.fullName,
+      email: formData.email.toLowerCase().trim(),
+      phoneNumber: formData.phoneNumber,
+      password: formData.password,
+    })
+  );
+    // Development only
+
+    localStorage.setItem("devOTP", "123456");
+
+    alert("Development OTP: 123456");
+
+    navigate("/otp");
+};
 
   return (
     <div className="min-h-screen bg-white flex">
@@ -307,7 +410,7 @@ function Signup() {
         {signupIllustration && (
           <div className="relative w-full max-w-[540px] h-[290px] mt-10">
             <img src={signupIllustration} alt="Parent and child"
-              className="w-full h-[290px] object-contain"/>
+              className="w-[485px] h-[370px] object-contain"/>
           </div>
         )}
       </div>
@@ -335,6 +438,7 @@ function Signup() {
                   value={formData.fullName}
                   onChange={handleChange}
                   placeholder="Enter your full name"
+                  autoFocus
                   required
                   className="w-full h-[48px] px-4 border border-[#E8E2FF] rounded-[16px] focus:border-[#7C3AED] focus:outline-none text-[15px] text-black placeholder:text-[#9CA3AF] transition"/>
               </div>
@@ -373,14 +477,7 @@ function Signup() {
                     id="phoneNumber"
                     name="phoneNumber"
                     value={formData.phoneNumber}
-                    onChange={(e) => {
-                      const value = e.target.value.replace(/\D/g, "");
-
-                      setFormData((prev) => ({
-                        ...prev,
-                        phoneNumber: value,
-                      }));
-                    }}
+                    onChange={handlePhoneChange}
                     placeholder="Enter your Phone Number"
                     maxLength={10}
                     required
@@ -485,6 +582,7 @@ function Signup() {
               </button>
             </form>
 
+              {/* <div id="recaptcha-container"></div> */}
             
             <div className="my-6 flex items-center gap-4">
               <div className="flex-1 h-px bg-[#E5E7EB]" />
@@ -496,7 +594,8 @@ function Signup() {
             <div className="space-y-3">
               <button
                 type="button"
-                onClick={() => googleSignup()}
+                onClick={googleSignup}
+                disabled={isLoading}
                 className="w-full h-[58px] rounded-full border border-[#E5E7EB] bg-white text-[#374151] font-medium flex items-center justify-center gap-3 hover:bg-[#FAFAFA] transition">
                 
                 <FaGoogle size={18} className="text-red-500" />
@@ -506,6 +605,7 @@ function Signup() {
               <button
                 type="button"
                 onClick={handleAppleSignup}
+                disabled={isLoading}
                 className="w-full h-[58px] rounded-full bg-black text-white font-medium flex items-center justify-center gap-3 hover:bg-[#111111] transition">
                 
                 <FaApple size={20} />
@@ -518,6 +618,7 @@ function Signup() {
               
               <button
                 onClick={navigateToLogin}
+                disabled={isLoading}
                 className="text-[#7C3AED] font-semibold hover:underline">
                 Log In
               </button>

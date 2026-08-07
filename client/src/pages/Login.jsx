@@ -8,6 +8,9 @@ import { useNavigate } from "react-router-dom";
 import logo from "../assets/icons/Vector.svg";
 import parentIllustration from "../assets/images/login page.png";
 import bg from "../assets/images/login img-bg.png";
+import API_URL from "../config/api";
+
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function Login() {
   const navigate = useNavigate();
@@ -36,18 +39,18 @@ function Login() {
     setError("");
     setSuccess("");
 
-    if(!email.trim()){
-      setError("Email is required");
-      return;
+    if (!EMAIL_REGEX.test(email.trim())) {
+        setError("Please enter a valid email address.");
+        return;
     }
-    if(!password){
-      setError("Password is required");
+    if (!password.trim()) {
+      setError("Password is required.");
       return;
     }
     setIsLoading(true);
     try{
 
-      const response = await fetch("http://localhost:5000/api/auth/login",{
+      const response = await fetch(`${API_URL}/auth/login`,{
 
             method:"POST",
             headers:{"Content-Type":"application/json"},
@@ -70,9 +73,7 @@ function Login() {
           }
             setSuccess("Login Successful");
 
-            setTimeout(()=>{
-              navigate("/dashboard");
-            },1000);
+            navigate("/dashboard");
         }
         else{
             setError(data.message || "Login Failed");
@@ -80,7 +81,7 @@ function Login() {
     }
     catch(err){
         console.error(err);
-        setError("Server Error");
+        setError(err.message || "Unable to connect to server.");
     }
 
     finally{
@@ -93,6 +94,7 @@ function Login() {
       try {
         setError("");
         setSuccess("");
+        setIsLoading(true);
 
         // Get Google user details
         const googleResponse = await fetch(
@@ -108,7 +110,7 @@ function Login() {
 
         // Send user to backend
         const backendResponse = await fetch(
-          "http://localhost:5000/api/auth/google",
+          `${API_URL}/auth/google`,
           {
             method: "POST",
             headers: {
@@ -117,6 +119,7 @@ function Login() {
             body: JSON.stringify({
               fullName: user.name,
               email: user.email,
+              picture: user.picture,
             }),
           }
         );

@@ -5,6 +5,7 @@ import interests from "../data/interests";
 import logo from "../assets/icons/Vector.svg";
 import { HiArrowRight } from "react-icons/hi";
 import { HiArrowLeft } from "react-icons/hi";
+import API_URL from "../config/api";
 
 function Interests() {
   const navigate = useNavigate();
@@ -21,10 +22,50 @@ function Interests() {
     }
   };
 
-  const handleNext = () => {
-    console.log(selectedInterests);
+  const handleNext = async () => {
 
-    navigate("/goals");
+    if (selectedInterests.length === 0) {
+      alert("Please select at least one interest.");
+      return;
+    }
+
+    const childId = localStorage.getItem("childId");
+
+    if (!childId) {
+      alert("Child not found. Please add child details first.");
+      navigate("/add-child");
+      return;
+    }
+
+    try {
+
+      const childId = localStorage.getItem("childId");
+
+      const response = await fetch(
+        `${API_URL}/child/interests/${childId}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            interests: selectedInterests,
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message);
+      }
+
+      navigate("/goals");
+
+    } catch (err) {
+      console.error(err);
+      alert(err.message || "Unable to save interests.");
+    }
   };
 
   return (
