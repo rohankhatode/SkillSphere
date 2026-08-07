@@ -2,12 +2,13 @@ require("dotenv").config();
 
 const express = require("express");
 const cors = require("cors");
-
 const connectDB = require("./config/db");
 const authRoutes = require("./routes/authRoutes");
 const childRoutes=require("./routes/childRoutes");
-
 const app = express();
+const dns = require("dns");
+// Change DNS
+dns.setServers(["1.1.1.1", "8.8.8.8"]);
 
 // Middleware
 app.use(express.json());
@@ -16,7 +17,7 @@ app.use(
     cors({
         origin: [
             "http://localhost:3000",
-            // "https://your-vercel-app.vercel.app"
+            "https://skill-sphere-b4v2-6vnba4dse-rohankhatode5-3039s-projects.vercel.app"
         ],
         credentials: true,
     })
