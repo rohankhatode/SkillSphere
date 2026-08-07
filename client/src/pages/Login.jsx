@@ -137,7 +137,7 @@ function Login() {
             }
 
             if (data.isNewUser) {
-                navigate("/phone-verification");
+                navigate("/Welcome");
             } else {
                 navigate("/dashboard");
             }
