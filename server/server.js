@@ -13,14 +13,22 @@ dns.setServers(["1.1.1.1", "8.8.8.8"]);
 // Middleware
 app.use(express.json());
 
+const allowedOrigins = [
+  "http://localhost:3000",
+  "https://skill-sphere-b4v2.vercel.app",
+];
+
 app.use(
     cors({
-        origin: [
-            "http://localhost:3000",
-            "https://skill-sphere-b4v2-6vnba4dse-rohankhatode5-3039s-projects.vercel.app"
-        ],
-        credentials: true,
-    })
+    origin: function (origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+    credentials: true,
+  })
 );
 
 // Health Check
