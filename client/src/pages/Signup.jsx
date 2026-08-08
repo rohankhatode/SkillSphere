@@ -216,7 +216,7 @@ function Signup() {
 
         navigate(
           data.isNewUser
-              ? "/phone-verification"
+              ? "/Welcome"
               : "/dashboard"
         );
       } catch (err) {
