@@ -12,6 +12,11 @@ import Goals from "./pages/Goals";
 import Recommendations from "./pages/Recommendations";
 import OTP from "./pages/otp";
 import Welcome from "./pages/Welcome";
+import AccountDetailsPage from "./pages/AccountDetailsPage";
+import UpcomingExamPage from "./pages/UpcomingExamPage";
+import ExamInformation from "./pages/ExamInstructions";
+import ExamStart from "./pages/ExamStart";
+import ResultPage from "./pages/ResultPage";
 
 
 function App() {
@@ -27,6 +32,12 @@ function App() {
       <Route path="/recommended" element={<Recommendations />} />
       <Route path="/OTP" element={<OTP />} />
       <Route path="/Welcome" element={<Welcome />} />
+      <Route path="/account-details" element={<AccountDetailsPage />} />
+      <Route path="/upcoming-exam" element={<UpcomingExamPage />} />
+      <Route path="/exam-information" element={<ExamInformation />} />
+      <Route path="/exam-start" element={<ExamStart />} />
+      <Route path="/result" element={<ResultPage />} />
+      
     </Routes>
   );
 }

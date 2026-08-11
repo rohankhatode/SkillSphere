@@ -1,19 +1,19 @@
-import { FiChevronDown } from "react-icons/fi";
+
+import { ChevronsUpDown } from "lucide-react";
 
 function Navbar() {
 return(
     <div className="w-full bg-white">
-        <div className="min-w-[1440px] h-[80px] flex items-center justify-between px-14 py-4">
+      <div className="min-w-[1440px] h-[80px] flex items-center justify-between px-14 py-4">
 
-            <div className="text-violet-600 text-[16px]">
+        <div className="text-violet-600 text-[24px]">
 
-                <span className="font-extrabold">SS.</span>
-                <span className="pl-1 font-semibold">SkillSphere</span>
+          <span className="font-extrabold">SS.</span>
+          <span className="pl-1 font-semibold">SkillSphere</span>
 
-            </div>
+        </div>
             
-            <div className="w-[365px] h-[55px] flex items-center bg-white border rounded-full px-5 py-2 shadow-sm">
-
+      <div className="w-[365px] h-[55px] flex items-center bg-white border rounded-full px-5 py-2 shadow-sm">
         <div className="w-8 h-8 rounded-full text-[12px] bg-[#F3ECFF] flex items-center justify-center font-semibold text-[#7C3AED]">
 
           AM
@@ -21,7 +21,6 @@ return(
         </div>
 
         <div className="ml-4 mr-5">
-
           <h3 className="text-[12px] font-semibold">
 
             Aarav Mahatre
@@ -36,11 +35,11 @@ return(
 
         </div>
 
-        <FiChevronDown />
+        <ChevronsUpDown size={15} />
 
       </div>
-        </div>
     </div>
+  </div>
 );
 
 }

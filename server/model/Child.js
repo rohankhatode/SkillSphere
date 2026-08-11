@@ -55,19 +55,17 @@ const childSchema = new mongoose.Schema(
         default:""
     },
 
-    interests: [
+    interests: 
     {
         type: [String],
         default:[]
-    }
-    ],
+    },
 
-    goals:[
+    goals:
         {
             type: [String],
             default:[]
-        }
-    ],
+        },
 },
 {
     timestamps:true

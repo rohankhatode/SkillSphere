@@ -5,6 +5,8 @@ const cors = require("cors");
 const connectDB = require("./config/db");
 const authRoutes = require("./routes/authRoutes");
 const childRoutes=require("./routes/childRoutes");
+const dashboardRoutes = require("./routes/dashboardRoutes");
+
 const app = express();
 const dns = require("dns");
 // Change DNS
@@ -42,6 +44,7 @@ app.get("/", (req, res) => {
 // Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/child",childRoutes);
+app.use("/api/dashboard", dashboardRoutes);
 
 // 404 Handler
 app.use((req, res) => {
