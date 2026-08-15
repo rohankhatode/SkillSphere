@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState} from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import owlHeader from "../../assets/images/owl img1.png";
 import owl from "../../assets/images/owl img2.png";
 import {
@@ -17,6 +18,19 @@ import {
 
 function ExamInformation() {
   const [agreed, setAgreed] = useState(false);
+
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  const {
+    examId,
+    childId,
+    resultId,
+  } = location.state || {};
+
+  console.log("Exam ID:", examId);
+  console.log("Child ID:", childId);
+  console.log("Result ID:", resultId);
 
   const beforeStart = [
     {
@@ -118,6 +132,34 @@ function ExamInformation() {
     "Stay calm — you have got this.",
   ];
 
+  if (!examId || !childId || !resultId) {
+  return (
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="text-center">
+        <h2 className="text-lg font-semibold">
+          Exam session not found
+        </h2>
+
+        <button
+          onClick={() => navigate("/dashboard")}
+          className="mt-4 bg-[#7938F5] text-white px-6 py-2 rounded-full"
+        >
+          Back to Dashboard
+        </button>
+      </div>
+    </div>
+  );
+}
+
+const handleBeginExam = () => {
+  navigate(`/exam/${examId}/questions`, {
+    state: {
+      examId,
+      childId,
+      resultId,
+    },
+  });
+};
   return (
     <div className="min-h-screen bg-white text-[#171321]">
 
@@ -411,13 +453,15 @@ function ExamInformation() {
 
         <button
           disabled={!agreed}
+          onClick={handleBeginExam}
           className={`h-[42px] px-8 rounded-full flex items-center gap-2 text-[16px] font-semibold text-white transition
             ${
               agreed
                 ? "bg-[#7938F5] hover:bg-[#6828DB]"
                 : "bg-[#CFC9D9] cursor-not-allowed"
             }
-          `}>
+          `}
+        >
           Start exam
           <ArrowRight size={16} />
         </button>

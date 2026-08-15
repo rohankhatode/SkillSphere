@@ -62,8 +62,11 @@ function Goals() {
     if (!response.ok) {
       throw new Error(data.message);
     }
-
-    localStorage.removeItem("childId");
+    
+    console.log(
+      "Child ID after saving goals:",
+      localStorage.getItem("childId")
+    );
 
     navigate("/recommended");
 

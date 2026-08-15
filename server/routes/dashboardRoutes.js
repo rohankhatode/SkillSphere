@@ -6,24 +6,34 @@ const authMiddleware = require("../middleware/authMiddleware");
 
 const {
     getDashboardOverview,
-    getAccountDetails
+    getAccountDetails,
+    updateAccountDetails
 } = require("../controllers/dashboardController");
 
+router.get("/test", (req, res) => {
+    res.json({
+        success: true,
+        message: "Dashboard routes are working"
+    });
+});
 
-// Dashboard Overview
 router.get(
-    "/overview",
+    "/overview/:childId",
     authMiddleware,
     getDashboardOverview
 );
 
 
-// Account Details
 router.get(
-    "/account",
+    "/account/:childId",
     authMiddleware,
     getAccountDetails
 );
 
+router.put(
+    "/account/:childId",
+    authMiddleware,
+    updateAccountDetails
+);
 
 module.exports = router;

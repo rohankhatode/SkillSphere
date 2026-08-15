@@ -34,48 +34,64 @@ function AddChild() {
 
   };
 
-  const handleSubmit=async()=>{
+  const handleSubmit = async () => {
+  try {
+    const token =
+      localStorage.getItem("token") ||
+      sessionStorage.getItem("token");
 
-    try{
+    if (!token) {
+      alert("Authentication token not found. Please login again.");
+      navigate("/login");
+      return;
+    }
 
-        const token =
-          localStorage.getItem("token") ||
-          sessionStorage.getItem("token");
+    console.log("Token:", token);
 
-          console.log(localStorage.getItem("token"));
-          console.log(sessionStorage.getItem("token"));
+    const response = await fetch(`${API_URL}/child/add`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(formData),
+    });
 
-      const response = await fetch(`${API_URL}/child/add`, {
-          method: "POST",
-          headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify(formData),
-      });
+    const data = await response.json();
 
-        const data=await response.json();
+    console.log("Add Child Response:", data);
 
-          if(response.ok){
+    if (!response.ok) {
+      alert(data.message || "Unable to add child");
+      return;
+    }
 
-            localStorage.setItem("childId", data.child._id);
+    // Check whether backend returned child
+    if (!data.child || !data.child._id) {
+      console.error("Child ID missing from backend response:", data);
 
-            navigate("/interests");
+      alert("Child was created, but Child ID was not returned by server.");
+      return;
+    }
 
-          }
-          else{
+    // Store Child ID
+    localStorage.setItem("childId", data.child._id);
 
-            alert(data.message);
+    console.log("Child ID saved:", data.child._id);
 
-          }
+    // Verify immediately
+    console.log(
+      "Child ID from LocalStorage:",
+      localStorage.getItem("childId")
+    );
 
-        }
+    navigate("/interests");
 
-        catch(err){
-
-          console.log(err);
-          alert("Unable to Add Child");}
-    };
+  } catch (err) {
+    console.error("Add Child Error:", err);
+    alert("Unable to Add Child");
+  }
+};
   
     return (
     <div className="min-h-screen bg-gray-50">

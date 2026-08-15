@@ -6,8 +6,12 @@ const connectDB = require("./config/db");
 const authRoutes = require("./routes/authRoutes");
 const childRoutes=require("./routes/childRoutes");
 const dashboardRoutes = require("./routes/dashboardRoutes");
+const examRoutes = require("./routes/examRoutes");
+const questionRoutes = require("./routes/questionRoutes");
+const resultRoutes = require("./routes/resultRoutes");
 
 const app = express();
+
 const dns = require("dns");
 // Change DNS
 dns.setServers(["1.1.1.1", "8.8.8.8"]);
@@ -45,6 +49,18 @@ app.get("/", (req, res) => {
 app.use("/api/auth", authRoutes);
 app.use("/api/child",childRoutes);
 app.use("/api/dashboard", dashboardRoutes);
+app.use("/api/exams", examRoutes);
+app.use("/api/questions", questionRoutes);
+app.use("/api/results", resultRoutes);
+
+// Temporary test route
+app.get("/api/test", (req, res) => {
+    res.json({
+        success: true,
+        message: "Local server is working"
+    });
+});
+
 
 // 404 Handler
 app.use((req, res) => {

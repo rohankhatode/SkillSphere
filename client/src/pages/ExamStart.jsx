@@ -1,4 +1,7 @@
 import React, { useEffect, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import API_URL from "../config/api";
+
 import {
   ArrowLeft,
   ArrowRight,
@@ -11,115 +14,161 @@ import {
   Lightbulb,
 } from "lucide-react";
 
-const questions = [
-  {
-    id: 1,
-    question: "What is 25% of 200?",
-    options: ["25", "40", "50", "75"],
-    answer: "50",
-  },
-  {
-    id: 2,
-    question: "Which fraction is equal to 1/2?",
-    options: ["2/6", "2/4", "3/9", "4/12"],
-    answer: "2/4",
-  },
-  {
-    id: 3,
-    question: "What is 5 × 6?",
-    options: ["25", "30", "35", "40"],
-    answer: "30",
-  },
-  {
-    id: 4,
-    question: "Which number is a prime number?",
-    options: ["12", "15", "17", "21"],
-    answer: "17",
-  },
-  {
-    id: 5,
-    question: "What is 100 ÷ 4?",
-    options: ["20", "25", "30", "40"],
-    answer: "25",
-  },
-  {
-    id: 6,
-    question: "What is 3²?",
-    options: ["6", "9", "12", "15"],
-    answer: "9",
-  },
-  {
-    id: 7,
-    question: "Which is the largest number?",
-    options: ["0.5", "0.75", "0.25", "0.65"],
-    answer: "0.75",
-  },
-  {
-    id: 8,
-    question: "What is 12 + 18?",
-    options: ["20", "25", "30", "35"],
-    answer: "30",
-  },
-  {
-    id: 9,
-    question: "How many sides does a triangle have?",
-    options: ["2", "3", "4", "5"],
-    answer: "3",
-  },
-  {
-    id: 10,
-    question: "What is 50% of 80?",
-    options: ["20", "30", "40", "50"],
-    answer: "40",
-  },
-  {
-    id: 11,
-    question: "What is 7 × 8?",
-    options: ["48", "54", "56", "64"],
-    answer: "56",
-  },
-  {
-    id: 12,
-    question: "What is 100 - 45?",
-    options: ["45", "50", "55", "65"],
-    answer: "55",
-  },
-];
-
 function ExamStart() {
-  const [currentQuestion, setCurrentQuestion] = useState(2);
+  const location = useLocation();
+  const navigate = useNavigate();
 
-  const [answers, setAnswers] = useState({
-    2: "2/6",
-  });
+  // --------------------------------------------------
+  // EXAM SESSION DATA
+  // --------------------------------------------------
 
+  const {
+    examId,
+    childId,
+    resultId,
+  } = location.state || {};
+
+  // --------------------------------------------------
+  // QUESTIONS
+  // --------------------------------------------------
+
+  const [questions, setQuestions] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  // --------------------------------------------------
+  // CURRENT QUESTION
+  // --------------------------------------------------
+
+  const [currentQuestion, setCurrentQuestion] = useState(1);
+
+  // Answers format:
+  //
+  // {
+  //   "mongodb-question-id": optionIndex
+  // }
+  //
+  // Example:
+  //
+  // {
+  //   "6a7e128cb675cb7250549d20": 2
+  // }
+  //
+  const [answers, setAnswers] = useState({});
+
+  // --------------------------------------------------
+  // MARKED QUESTIONS
+  // --------------------------------------------------
+
+  // We store question numbers here.
+  //
+  // Example:
+  // [2, 5, 8]
+  //
   const [markedQuestions, setMarkedQuestions] = useState([]);
 
-  const [timeLeft, setTimeLeft] = useState(44 * 60 + 5);
+  // --------------------------------------------------
+  // TIMER
+  // --------------------------------------------------
 
-  const current = questions[currentQuestion - 1];
+  const [timeLeft, setTimeLeft] = useState(45 * 60);
 
-  /* ---------------------------------------------
-     TIMER
-  --------------------------------------------- */
+  // ==================================================
+  // FETCH QUESTIONS
+  // ==================================================
 
   useEffect(() => {
+    const fetchQuestions = async () => {
+      try {
+        setLoading(true);
+        setError("");
+
+        // Get authentication token
+        const token =
+          localStorage.getItem("token") ||
+          sessionStorage.getItem("token");
+
+        if (!token) {
+          setError("User not authenticated.");
+          return;
+        }
+
+        // Make sure exam ID exists
+        if (!examId) {
+          setError("Exam ID is missing.");
+          return;
+        }
+
+        console.log("Fetching questions for exam:", examId);
+
+        const response = await fetch(
+          `${API_URL}/questions/exam/${examId}`,
+          {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+          }
+        );
+
+        const data = await response.json();
+
+        console.log("Questions Response:", data);
+
+        if (!response.ok) {
+          throw new Error(
+            data.message || "Unable to load questions"
+          );
+        }
+
+        setQuestions(data.questions || []);
+      } catch (error) {
+        console.error("Fetch Questions Error:", error);
+
+        setError(
+          error.message || "Unable to load questions."
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchQuestions();
+  }, [examId]);
+
+  // ==================================================
+  // TIMER
+  // ==================================================
+
+  useEffect(() => {
+    // Don't start timer until questions are loaded
+    if (loading) {
+      return;
+    }
+
     const timer = setInterval(() => {
-      setTimeLeft((previous) => {
-        if (previous <= 0) {
+      setTimeLeft((previousTime) => {
+        if (previousTime <= 1) {
           clearInterval(timer);
+
           return 0;
         }
 
-        return previous - 1;
+        return previousTime - 1;
       });
     }, 1000);
 
     return () => clearInterval(timer);
-  }, []);
+  }, [loading]);
+
+  // ==================================================
+  // FORMAT TIMER
+  // ==================================================
 
   const formatTime = () => {
     const minutes = Math.floor(timeLeft / 60);
+
     const seconds = timeLeft % 60;
 
     return `${String(minutes).padStart(2, "0")}:${String(
@@ -127,94 +176,355 @@ function ExamStart() {
     ).padStart(2, "0")}`;
   };
 
-  /* ---------------------------------------------
-     ANSWER SELECTION
-  --------------------------------------------- */
+  // ==================================================
+  // LOADING STATE
+  // ==================================================
 
-  const selectAnswer = (answer) => {
-    setAnswers({
-      ...answers,
-      [currentQuestion]: answer,
-    });
-  };
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-gray-500">
+          Loading questions...
+        </p>
+      </div>
+    );
+  }
 
-  /* ---------------------------------------------
-     QUESTION STATUS
-  --------------------------------------------- */
+  // ==================================================
+  // ERROR STATE
+  // ==================================================
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-500 mb-4">
+            {error}
+          </p>
+
+          <button
+            onClick={() => navigate("/dashboard")}
+            className="bg-[#7837e8] text-white px-6 py-2 rounded-full"
+          >
+            Back to Dashboard
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!examId || !childId || !resultId) {
+  return (
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="text-center">
+        <p className="text-red-500 mb-4">
+          Exam session information is missing.
+        </p>
+
+        <button
+          onClick={() => navigate("/dashboard")}
+          className="bg-[#7837e8] text-white px-6 py-2 rounded-full"
+        >
+          Back to Dashboard
+        </button>
+      </div>
+    </div>
+  );
+}
+
+  // ==================================================
+  // NO QUESTIONS
+  // ==================================================
+
+  if (questions.length === 0) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-gray-500 mb-4">
+            No questions available for this exam.
+          </p>
+
+          <button
+            onClick={() => navigate("/dashboard")}
+            className="bg-[#7837e8] text-white px-6 py-2 rounded-full"
+          >
+            Back to Dashboard
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ==================================================
+  // CURRENT QUESTION
+  // ==================================================
+
+  const current = questions[currentQuestion - 1];
+
+  // ==================================================
+  // ANSWER SELECTION
+  // ==================================================
+
+  const selectAnswer = async (answerIndex) => {
+  try {
+    const token =
+      localStorage.getItem("token") ||
+      sessionStorage.getItem("token");
+
+    if (!token) {
+      alert("Please login again.");
+      return;
+    }
+
+    if (!resultId) {
+      alert("Exam attempt not found.");
+      return;
+    }
+
+    const current = questions[currentQuestion - 1];
+
+    if (!current) {
+      return;
+    }
+
+    // Update UI immediately
+    setAnswers((previous) => ({
+      ...previous,
+      [current._id]: answerIndex,
+    }));
+
+    // Save answer to backend
+    const response = await fetch(
+      `${API_URL}/results/${resultId}/answers`,
+      {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          questionId: current._id,
+          selectedAnswer: answerIndex,
+        }),
+      }
+    );
+
+    const data = await response.json();
+
+    console.log("Save Answer Response:", data);
+
+    if (!response.ok) {
+      throw new Error(
+        data.message || "Unable to save answer"
+      );
+    }
+
+  } catch (error) {
+    console.error("Save Answer Error:", error);
+
+    alert(
+      error.message || "Unable to save answer"
+    );
+  }
+};
+
+  // ==================================================
+  // QUESTION STATUS
+  // ==================================================
 
   const answeredCount = Object.keys(answers).length;
 
   const markedCount = markedQuestions.length;
 
-  const remainingCount = questions.length - answeredCount;
+  const remainingCount =
+    questions.length - answeredCount;
 
-  const progressPercentage = Math.round(
-    (answeredCount / questions.length) * 100
-  );
+  const progressPercentage =
+    questions.length > 0
+      ? Math.round(
+          (answeredCount / questions.length) * 100
+        )
+      : 0;
 
-  /* ---------------------------------------------
-     MARK QUESTION
-  --------------------------------------------- */
+  // ==================================================
+  // MARK QUESTION
+  // ==================================================
 
   const toggleMark = () => {
-    if (markedQuestions.includes(currentQuestion)) {
-      setMarkedQuestions(
-        markedQuestions.filter((id) => id !== currentQuestion)
-      );
-    } else {
-      setMarkedQuestions([
-        ...markedQuestions,
+    setMarkedQuestions((previousMarked) => {
+      if (
+        previousMarked.includes(currentQuestion)
+      ) {
+        return previousMarked.filter(
+          (id) => id !== currentQuestion
+        );
+      }
+
+      return [
+        ...previousMarked,
         currentQuestion,
-      ]);
-    }
+      ];
+    });
   };
 
-  /* ---------------------------------------------
-     NAVIGATION
-  --------------------------------------------- */
+  // ==================================================
+  // PREVIOUS QUESTION
+  // ==================================================
 
   const goPrevious = () => {
     if (currentQuestion > 1) {
-      setCurrentQuestion(currentQuestion - 1);
+      setCurrentQuestion(
+        currentQuestion - 1
+      );
     }
   };
+
+  // ==================================================
+  // NEXT QUESTION
+  // ==================================================
 
   const goNext = () => {
-    if (currentQuestion < questions.length) {
-      setCurrentQuestion(currentQuestion + 1);
+    if (
+      currentQuestion <
+      questions.length
+    ) {
+      setCurrentQuestion(
+        currentQuestion + 1
+      );
     }
   };
 
+  // ==================================================
+  // CLEAR ANSWER
+  // ==================================================
+
   const clearAnswer = () => {
-    const updatedAnswers = { ...answers };
+    const questionId = current._id;
 
-    delete updatedAnswers[currentQuestion];
+    setAnswers((previousAnswers) => {
+      const updatedAnswers = {
+        ...previousAnswers,
+      };
 
-    setAnswers(updatedAnswers);
+      delete updatedAnswers[questionId];
+
+      return updatedAnswers;
+    });
   };
 
-  /* ---------------------------------------------
-     QUESTION STATUS COLOR
-  --------------------------------------------- */
+  // ==================================================
+// SUBMIT EXAM
+// ==================================================
 
-  const getQuestionStyle = (id) => {
-    if (id === currentQuestion) {
+const submitExam = async () => {
+  try {
+    const token =
+      localStorage.getItem("token") ||
+      sessionStorage.getItem("token");
+
+    if (!token) {
+      alert("Please login again.");
+      return;
+    }
+
+    if (!resultId) {
+      alert("Exam attempt not found.");
+      return;
+    }
+
+    const confirmSubmit = window.confirm(
+      "Are you sure you want to submit the exam?"
+    );
+
+    if (!confirmSubmit) {
+      return;
+    }
+
+    const response = await fetch(
+      `${API_URL}/results/${resultId}/submit`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    const data = await response.json();
+
+    console.log("Submit Exam Response:", data);
+
+    if (!response.ok) {
+      throw new Error(
+        data.message || "Unable to submit exam"
+      );
+    }
+
+    // Navigate to result page
+    navigate("/result", {
+      state: {
+        resultId: data.result.resultId,
+      },
+    });
+
+  } catch (error) {
+    console.error("Submit Exam Error:", error);
+
+    alert(
+      error.message || "Unable to submit exam"
+    );
+  }
+};
+
+  // ==================================================
+  // QUESTION STATUS COLOR
+  // ==================================================
+
+  const getQuestionStyle = (questionNumber) => {
+    // Current question
+    if (
+      questionNumber === currentQuestion
+    ) {
       return "bg-[#7837e8] text-white shadow-md";
     }
 
-    if (answers[id]) {
+    // Get actual question
+    const question =
+      questions[questionNumber - 1];
+
+    // Answered
+    if (
+      question &&
+      answers[question._id] !== undefined
+    ) {
       return "bg-[#d6f5e8] text-[#12965b]";
     }
 
-    if (markedQuestions.includes(id)) {
+    // Marked
+    if (
+      markedQuestions.includes(
+        questionNumber
+      )
+    ) {
       return "bg-[#ffe1a8] text-[#a56600]";
     }
 
+    // Not visited
     return "bg-[#f7f7fa] text-[#687080]";
   };
 
+  // ==================================================
+  // RENDER
+  // ==================================================
+
   return (
     <div className="min-h-screen bg-white text-[#171b2b] mb-10">
+
+      {/* =================================================
+          HEADER
+      ================================================= */}
+
       <header className="h-[78px] border-b border-[#e7e7ec] bg-white px-9">
 
         <div className="flex h-full items-center">
@@ -233,11 +543,9 @@ function ExamStart() {
 
           </div>
 
-
           {/* Divider */}
 
           <div className="mx-5 h-7 w-px bg-[#dedee5]" />
-
 
           {/* Assessment */}
 
@@ -248,11 +556,11 @@ function ExamStart() {
             </p>
 
             <p className="text-[12px] text-[#777d8b]">
-              Question {currentQuestion} of {questions.length}
+              Question {currentQuestion} of{" "}
+              {questions.length}
             </p>
 
           </div>
-
 
           {/* Progress */}
 
@@ -275,7 +583,6 @@ function ExamStart() {
 
           </div>
 
-
           {/* Timer */}
 
           <div className="mr-4 flex items-center gap-2 rounded-full bg-[#f6f5fa] px-4 py-2.5">
@@ -290,7 +597,6 @@ function ExamStart() {
             </span>
 
           </div>
-
 
           {/* User */}
 
@@ -315,10 +621,12 @@ function ExamStart() {
             <span className="ml-2 text-[#626775]">
               ⌄
             </span>
-          </div>
-        </div>
-      </header>
 
+          </div>
+
+        </div>
+
+      </header>
 
       {/* =================================================
           MAIN CONTENT
@@ -349,29 +657,35 @@ function ExamStart() {
 
             </div>
 
-
             {/* Question Grid */}
 
             <div className="grid grid-cols-3 gap-2">
 
-              {questions.map((question) => (
+              {questions.map(
+                (question, index) => {
 
-                <button
-                  key={question.id}
-                  onClick={() =>
-                    setCurrentQuestion(question.id)
-                  }
-                  className={`flex h-[55px] items-center justify-center rounded-full text-[14px] font-semibold transition hover:scale-[1.03] ${getQuestionStyle(
-                    question.id
-                  )}`}
-                >
-                  {question.id}
-                </button>
+                  const questionNumber =
+                    index + 1;
 
-              ))}
+                  return (
+                    <button
+                      key={question._id}
+                      onClick={() =>
+                        setCurrentQuestion(
+                          questionNumber
+                        )
+                      }
+                      className={`flex h-[55px] items-center justify-center rounded-full text-[14px] font-semibold transition hover:scale-[1.03] ${getQuestionStyle(
+                        questionNumber
+                      )}`}
+                    >
+                      {questionNumber}
+                    </button>
+                  );
+                }
+              )}
 
             </div>
-
 
             {/* Legend */}
 
@@ -412,7 +726,6 @@ function ExamStart() {
             </div>
 
           </div>
-
 
           {/* Progress Summary */}
 
@@ -457,11 +770,14 @@ function ExamStart() {
                 <span className="font-semibold text-[#e99a00]">
                   {markedCount}
                 </span>
-              </div>
-            </div>
-          </div>
-        </aside>
 
+              </div>
+
+            </div>
+
+          </div>
+
+        </aside>
 
         {/* =================================================
             CENTER QUESTION
@@ -485,71 +801,71 @@ function ExamStart() {
 
             </div>
 
-
             {/* Question */}
 
             <h1 className="mb-8 text-[24px] font-bold tracking-[-0.5px]">
-
-              {current.question}
-
+              {current.questionText}
             </h1>
-
 
             {/* Options */}
 
             <div className="space-y-4">
 
-              {current.options.map((option) => {
+              {current.options.map(
+                (option, index) => {
 
-                const selected =
-                  answers[currentQuestion] === option;
+                  // Check selected option
+                  const selected =
+                    answers[current._id] ===
+                    index;
 
-                return (
-
-                  <button
-                    key={option}
-                    onClick={() => selectAnswer(option)}
-                    className={`flex w-full items-center rounded-[28px] border-2 px-5 py-5 text-left transition ${
-                      selected
-                        ? "border-[#7d36ed] bg-[#f6f2ff] text-[#7132dc]"
-                        : "border-[#e0e1e6] bg-white hover:border-[#c7a9f6]"
-                    }`}
-                  >
-
-                    {/* Radio */}
-
-                    <span
-                      className={`mr-4 flex h-6 w-6 items-center justify-center rounded-full border-2 ${
+                  return (
+                    <button
+                      key={index}
+                      onClick={() =>
+                        selectAnswer(index)
+                      }
+                      className={`flex w-full items-center rounded-[28px] border-2 px-5 py-5 text-left transition ${
                         selected
-                          ? "border-[#7d36ed]"
-                          : "border-[#c4c7ce]"
+                          ? "border-[#7d36ed] bg-[#f6f2ff] text-[#7132dc]"
+                          : "border-[#e0e1e6] bg-white hover:border-[#c7a9f6]"
                       }`}
                     >
 
-                      {selected && (
-                        <span className="h-3 w-3 rounded-full bg-[#7d36ed]" />
-                      )}
+                      {/* Radio */}
 
-                    </span>
+                      <span
+                        className={`mr-4 flex h-6 w-6 items-center justify-center rounded-full border-2 ${
+                          selected
+                            ? "border-[#7d36ed]"
+                            : "border-[#c4c7ce]"
+                        }`}
+                      >
 
+                        {selected && (
+                          <span className="h-3 w-3 rounded-full bg-[#7d36ed]" />
+                        )}
 
-                    <span
-                      className={`text-[18px] ${
-                        selected
-                          ? "font-bold"
-                          : "font-medium text-[#333846]"
-                      }`}
-                    >
-                      {option}
-                    </span>
+                      </span>
 
-                  </button>
+                      {/* Option */}
 
-                );
-              })}
+                      <span
+                        className={`text-[18px] ${
+                          selected
+                            ? "font-bold"
+                            : "font-medium text-[#333846]"
+                        }`}
+                      >
+                        {option}
+                      </span>
+
+                    </button>
+                  );
+                }
+              )}
 
             </div>
-
 
             {/* Saved message */}
 
@@ -565,7 +881,6 @@ function ExamStart() {
 
         </section>
 
-
         {/* =================================================
             RIGHT COLUMN
         ================================================= */}
@@ -580,7 +895,6 @@ function ExamStart() {
               Assessment progress
             </h2>
 
-
             {/* Donut */}
 
             <div className="my-5 flex justify-center">
@@ -589,8 +903,14 @@ function ExamStart() {
                 className="relative flex h-[125px] w-[125px] items-center justify-center rounded-full"
                 style={{
                   background: `conic-gradient(
-                    #7b36e8 ${progressPercentage * 3.6}deg,
-                    #f1effa ${progressPercentage * 3.6}deg
+                    #7b36e8 ${
+                      progressPercentage *
+                      3.6
+                    }deg,
+                    #f1effa ${
+                      progressPercentage *
+                      3.6
+                    }deg
                   )`,
                 }}
               >
@@ -607,11 +927,11 @@ function ExamStart() {
 
             </div>
 
-
             <div className="text-center">
 
               <p className="text-[14px] text-[#7b808d]">
-                {answeredCount} of {questions.length} answered
+                {answeredCount} of{" "}
+                {questions.length} answered
               </p>
 
               <p className="mt-2 text-[14px] font-bold">
@@ -621,7 +941,6 @@ function ExamStart() {
             </div>
 
           </div>
-
 
           {/* Quick Tips */}
 
@@ -639,7 +958,6 @@ function ExamStart() {
               </h2>
 
             </div>
-
 
             <div className="space-y-4">
 
@@ -703,7 +1021,6 @@ function ExamStart() {
 
       </main>
 
-
       {/* =================================================
           BOTTOM NAVIGATION
       ================================================= */}
@@ -724,13 +1041,14 @@ function ExamStart() {
 
         </button>
 
-
         {/* Mark */}
 
         <button
           onClick={toggleMark}
           className={`flex items-center gap-2 rounded-full border px-6 py-3 text-[14px] font-semibold transition ${
-            markedQuestions.includes(currentQuestion)
+            markedQuestions.includes(
+              currentQuestion
+            )
               ? "border-[#7837e8] bg-[#f5efff] text-[#7837e8]"
               : "border-[#7837e8] text-[#7837e8] hover:bg-[#f7f1ff]"
           }`}
@@ -738,12 +1056,13 @@ function ExamStart() {
 
           <Flag size={16} />
 
-          {markedQuestions.includes(currentQuestion)
+          {markedQuestions.includes(
+            currentQuestion
+          )
             ? "Marked"
             : "Mark for review"}
 
         </button>
-
 
         {/* Clear */}
 
@@ -758,20 +1077,27 @@ function ExamStart() {
 
         </button>
 
-
         {/* Next */}
 
+        {currentQuestion === questions.length ? (
+        <button
+          onClick={submitExam}
+          className="flex items-center gap-2 rounded-full bg-[#16a34a] px-8 py-3 text-[16px] font-bold text-white shadow-sm transition hover:bg-[#15803d]"
+        >
+          Submit Exam
+
+          <Check size={17} />
+        </button>
+      ) : (
         <button
           onClick={goNext}
-          disabled={currentQuestion === questions.length}
-          className="flex items-center gap-2 rounded-full bg-[#7837e8] px-8 py-3 text-[16px] font-bold text-white shadow-sm transition hover:bg-[#692bd4] disabled:cursor-not-allowed disabled:opacity-40"
+          className="flex items-center gap-2 rounded-full bg-[#7837e8] px-8 py-3 text-[16px] font-bold text-white shadow-sm transition hover:bg-[#692bd4]"
         >
-
           Next
 
           <ArrowRight size={17} />
-
         </button>
+      )}
 
       </footer>
 

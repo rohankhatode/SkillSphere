@@ -18,6 +18,16 @@ const userSchema = new mongoose.Schema({
         type: String,
         default: ""
     },
+    
+    motherName: {
+        type: String,
+        default: ""
+    },
+
+    emergencyContact: {
+        type: String,
+        default: ""
+    },
 
     phoneVerified: {
         type: Boolean,

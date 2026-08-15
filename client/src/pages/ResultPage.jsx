@@ -1,4 +1,6 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import API_URL from "../config/api";
 import {
   Check,
   TrendingUp,
@@ -7,6 +9,101 @@ import {
 } from "lucide-react";
 
 function ResultPage() {
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  const resultId = location.state?.resultId;
+
+  const [result, setResult] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    const fetchResult = async () => {
+      try {
+        const token =
+          localStorage.getItem("token") ||
+          sessionStorage.getItem("token");
+
+        if (!token) {
+          setError("User not authenticated.");
+          return;
+        }
+
+        if (!resultId) {
+          setError("Result ID is missing.");
+          return;
+        }
+
+        const response = await fetch(
+          `${API_URL}/results/${resultId}`,
+          {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+          }
+        );
+
+        const data = await response.json();
+
+        console.log("Result Response:", data);
+
+        if (!response.ok) {
+          throw new Error(
+            data.message || "Unable to load result"
+          );
+        }
+
+        setResult(data.result);
+
+      } catch (error) {
+        console.error("Fetch Result Error:", error);
+
+        setError(
+          error.message || "Unable to load result"
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchResult();
+  }, [resultId]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-gray-500">
+          Loading result...
+        </p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <p className="mb-4 text-red-500">
+            {error}
+          </p>
+
+          <button
+            onClick={() => navigate("/dashboard")}
+            className="rounded-full bg-[#7837e8] px-6 py-2 text-white"
+          >
+            Back to Dashboard
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!result) {
+    return null;
+  }
   return (
     <div className="min-h-screen bg-white py-14 px-4 font-sans">
       <div className="mx-auto w-full max-w-[645px]">
@@ -49,20 +146,22 @@ function ResultPage() {
           <div className="absolute right-[30px] top-[58px] text-right text-white">
 
             <div className="text-[58px] font-extrabold leading-none tracking-tight">
-              91%
+              {result.percentage}%
             </div>
 
             <h1 className="mt-3 text-[20px] font-extrabold">
-              Amazing work, Aarav!
+              Amazing work,  {result.child?.childName || "Student"}!
             </h1>
 
             <div className="mt-4 flex justify-end gap-2">
               <span className="rounded-full bg-white/20 px-4 py-1 text-[11px] font-bold backdrop-blur-sm">
-                Excellent
-              </span>
-
-              <span className="rounded-full bg-white/20 px-4 py-1 text-[11px] font-bold backdrop-blur-sm">
-                Top 10%
+                {result.percentage >= 80
+                  ? "Excellent"
+                  : result.percentage >= 60
+                  ? "Good"
+                  : result.percentage >= 40
+                  ? "Passed"
+                  : "Needs Improvement"}
               </span>
             </div>
           </div>
@@ -81,25 +180,24 @@ function ResultPage() {
           <div className="mt-5 grid grid-cols-4 gap-3">
 
             <PerformanceCard
-              title="Accuracy"
-              value="91%"
+              title="Score"
+              value={`${result.score}`}
             />
 
             <PerformanceCard
-              title="Time taken"
-              value="41 min"
+              title="Percentage"
+              value={`${result.percentage}%`}
             />
 
             <PerformanceCard
-              title="Correct"
-              value="27"
+              title="Attempted"
+              value={`${result.attemptedQuestions}`}
             />
 
             <PerformanceCard
-              title="Wrong"
-              value="3"
+              title="Total"
+              value={`${result.totalQuestions}`}
             />
-
           </div>
 
           {/* Strengths / Needs Practice */}

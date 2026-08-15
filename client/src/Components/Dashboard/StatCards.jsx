@@ -8,44 +8,46 @@ import {
   BookOpen,
 } from "lucide-react";
 
-function StatCards() {
-  const stats = [
-    {
-      title: "Psychometric Score",
-      value: "91%",
-      icon: Brain,
-      iconColor: "text-[#7C3AED]",
-      iconBg: "bg-[#F1EAFE]",
-    },
-    {
-      title: "Certificates",
-      value: "8",
-      icon: Award,
-      iconColor: "text-[#2563EB]",
-      iconBg: "bg-[#EEF4FF]",
-    },
-    {
-      title: "Completed Test",
-      value: "12",
-      icon: CircleCheck,
-      iconColor: "text-[#10B981]",
-      iconBg: "bg-[#ECFDF5]",
-    },
-    {
-      title: "Upcoming Exams",
-      value: "3",
-      icon: CalendarClock,
-      iconColor: "text-[#F59E0B]",
-      iconBg: "bg-[#FFF7E6]",
-    },
-    {
-      title: "Courses",
-      value: "12",
-      icon: BookOpen,
-      iconColor: "text-[#EC4899]",
-      iconBg: "bg-[#FCEFF5]",
-    },
+function StatCards({ stats }) {
+
+  const statCards = [
+      {
+          title: "Psychometric Score",
+          value: `${stats?.psychometricScore ?? 0}%`,
+          icon: Brain,
+          iconColor: "text-[#7C3AED]",
+          iconBg: "bg-[#F1EAFE]",
+      },
+      {
+          title: "Certificates",
+          value: stats?.certificates ?? 0,
+          icon: Award,
+          iconColor: "text-[#2563EB]",
+          iconBg: "bg-[#EEF4FF]",
+      },
+      {
+          title: "Completed Test",
+          value: stats?.completedTests ?? 0,
+          icon: CircleCheck,
+          iconColor: "text-[#10B981]",
+          iconBg: "bg-[#ECFDF5]",
+      },
+      {
+          title: "Upcoming Exams",
+          value: stats?.upcomingExams ?? 0,
+          icon: CalendarClock,
+          iconColor: "text-[#F59E0B]",
+          iconBg: "bg-[#FFF7E6]",
+      },
+      {
+          title: "Courses",
+          value: stats?.courses ?? 0,
+          icon: BookOpen,
+          iconColor: "text-[#EC4899]",
+          iconBg: "bg-[#FCEFF5]",
+      },
   ];
+
 
 return(
 
@@ -60,7 +62,7 @@ return(
 
       <div className="grid grid-cols-5 gap-4 w-full">
 
-      {stats.map((stat) => {
+      {statCards.map((stat) => {
         const Icon = stat.icon;
 
         return (

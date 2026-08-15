@@ -8,7 +8,24 @@ import {
   ArrowRight,
 } from "lucide-react";
 
-function PsychometricSummary() {
+function PsychometricSummary({data}) {
+
+   if (!data) {
+    return (
+      <section className="mt-6">
+        <div className="bg-white rounded-2xl border border-[#E8E8F0] p-8 text-center">
+          <h2 className="text-lg font-semibold">
+            No Psychometric Test Found
+          </h2>
+
+          <p className="text-gray-500 mt-2">
+            Take the psychometric test to generate your profile.
+          </p>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section className="mt-6">
       <div className="flex items-end justify-between mb-3">
@@ -49,7 +66,7 @@ function PsychometricSummary() {
 
           <div className="bg-[#FCFBFF] rounded-xl w-[410px] min-h-[385px] flex items-center justify-center">
  
-            <RadarChart />
+            <RadarChart data={data} />
 
           </div>
 
@@ -63,8 +80,8 @@ function PsychometricSummary() {
                 iconBg="bg-[#F3E8FF]"
                 iconColor="text-[#8B5CF6]"
                 label="PERSONA"
-                title="Creative Explorer"
-                description="Creative, curious and solution-oriented."
+                title={data.personality || "Not available"}
+                description={data.personalityDescription || "No description available"}
               />
 
               {/* Learning Style */}
@@ -74,8 +91,8 @@ function PsychometricSummary() {
                 iconBg="bg-[#EEF4FF]"
                 iconColor="text-[#3B82F6]"
                 label="LEARNING STYLE"
-                title="Visual Learner"
-                description="Prefers diagrams, videos and visual examples."
+                title={data.learningStyle || "Not available"}
+                description={data.learningStyleDescription || "No description available"}
               />
 
               {/* Strongest Skill */}
@@ -85,8 +102,8 @@ function PsychometricSummary() {
                 iconBg="bg-[#ECFDF5]"
                 iconColor="text-[#10B981]"
                 label="STRONGEST SKILL"
-                title="Problem Solving"
-                description="95% proficiency"
+                title={data.strongestSkill || "Not available"}
+                description={`${data.strongestSkillScore}% proficiency`}
               />
 
               {/* Career Interest */}
@@ -96,8 +113,8 @@ function PsychometricSummary() {
                 iconBg="bg-[#FFF0F6]"
                 iconColor="text-[#EC4899]"
                 label="CAREER INTEREST"
-                title="Design & Technology"
-                description="Top recommended field"
+                title={data.careerInterest || "Not available"}
+                description={data.careerInterestDescription || "No description available"}
               />
             </div>
 
@@ -122,8 +139,7 @@ function PsychometricSummary() {
                 </p>
 
                 <p className="text-[14px] text-[#4B5563] mt-1 leading-5">
-                  Aarav excels at solving complex problems with creativity
-                  and enjoys visual, hands-on learning experiences.
+                  {data.aiInsight || "No AI sight available yet."}
                 </p>
               </div>
             </div>
@@ -193,53 +209,53 @@ function InsightCard({
    RADAR CHART
 ============================================================ */
 
-function RadarChart() {
+function RadarChart({data}) {
 
   const center = 150;
   const radius = 90;
 
   const labels = [
-    {
-      name: "Creativity",
-      value: 90,
-      angle: -90,
-    },
-    {
-      name: "Problem Solving",
-      value: 95,
-      angle: -45,
-    },
-    {
-      name: "Communication",
-      value: 84,
-      angle: 0,
-    },
-    {
-      name: "Leadership",
-      value: 78,
-      angle: 45,
-    },
-    {
-      name: "Innovation",
-      value: 88,
-      angle: 90,
-    },
-    {
-      name: "Logical Thinking",
-      value: 92,
-      angle: 135,
-    },
-    {
-      name: "Focus",
-      value: 82,
-      angle: 180,
-    },
-    {
-      name: "Collaboration",
-      value: 88,
-      angle: 225,
-    },
-  ];
+  {
+    name: "Creativity",
+    value: data.creativity??0,
+    angle: -90,
+  },
+  {
+    name: "Problem Solving",
+    value: data.problemSolving??0,
+    angle: -45,
+  },
+  {
+    name: "Communication",
+    value: data.communication??0,
+    angle: 0,
+  },
+  {
+    name: "Leadership",
+    value: data.leadership??0,
+    angle: 45,
+  },
+  {
+    name: "Innovation",
+    value: data.innovation??0,
+    angle: 90,
+  },
+  {
+    name: "Logical Thinking",
+    value: data.logicalThinking??0,
+    angle: 135,
+  },
+  {
+    name: "Focus",
+    value: data.focus??0,
+    angle: 180,
+  },
+  {
+    name: "Collaboration",
+    value: data.collaboration??0,
+    angle: 225,
+  },
+];
 
 
   /* Convert polar coordinates */
