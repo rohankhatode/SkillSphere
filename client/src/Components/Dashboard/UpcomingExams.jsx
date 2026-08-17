@@ -6,7 +6,6 @@ import {
   Play,
   Clock3,
   FileText,
-  Download,
   Award,
   Timer,
 } from "lucide-react";
