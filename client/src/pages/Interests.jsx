@@ -23,50 +23,76 @@ function Interests() {
   };
 
   const handleNext = async () => {
+  if (selectedInterests.length === 0) {
+    alert("Please select at least one interest.");
+    return;
+  }
 
-    if (selectedInterests.length === 0) {
-      alert("Please select at least one interest.");
-      return;
-    }
+  // Get token from either storage
+  const token =
+    localStorage.getItem("token") ||
+    sessionStorage.getItem("token");
 
-    const childId = localStorage.getItem("childId");
+  // Get child ID from either storage
+  const childId =
+    localStorage.getItem("childId") ||
+    sessionStorage.getItem("childId");
 
-    if (!childId) {
-      alert("Child not found. Please add child details first.");
-      navigate("/add-child");
-      return;
-    }
+  // Check authentication
+  if (!token) {
+    alert("Authentication token not found. Please login again.");
+    navigate("/login");
+    return;
+  }
 
-    try {
+  // Check child
+  if (!childId) {
+    alert("Child not found. Please add child details first.");
+    navigate("/add-child");
+    return;
+  }
 
-      const childId = localStorage.getItem("childId");
+  try {
+    console.log("Token exists:", !!token);
+    console.log("Child ID:", childId);
+    console.log("Selected Interests:", selectedInterests);
 
-      const response = await fetch(
-        `${API_URL}/child/interests/${childId}`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            interests: selectedInterests,
-          }),
-        }
-      );
+    const response = await fetch(
+      `${API_URL}/child/interests/${childId}`,
+      {
+        method: "PUT",
 
-      const data = await response.json();
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
 
-      if (!response.ok) {
-        throw new Error(data.message);
+        body: JSON.stringify({
+          interests: selectedInterests,
+        }),
       }
+    );
 
-      navigate("/goals");
+    const data = await response.json();
 
-    } catch (err) {
-      console.error(err);
-      alert(err.message || "Unable to save interests.");
+    console.log("Update Interests Response:", data);
+
+    if (!response.ok) {
+      throw new Error(
+        data.message || "Unable to save interests."
+      );
     }
-  };
+
+    navigate("/goals");
+
+  } catch (err) {
+    console.error("Update Interests Error:", err);
+
+    alert(
+      err.message || "Unable to save interests."
+    );
+  }
+};
 
   return (
     <div className="min-h-screen bg-[#FAFBFF]">
