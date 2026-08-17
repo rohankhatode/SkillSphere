@@ -377,18 +377,6 @@ const submitResult = async (req, res) => {
 
     /*
     -----------------------------------------
-    Calculate total questions
-    -----------------------------------------
-    */
-
-    const totalQuestions = await Question.countDocuments({
-      exam: result.exam,
-    });
-
-    result.totalQuestions = totalQuestions;
-
-    /*
-    -----------------------------------------
     Calculate attempted questions
     -----------------------------------------
     */

@@ -50,56 +50,133 @@ const addChild = async(req,res)=>{
     }
 };
 
+// =======================
+// Get Logged-in User's Children
+// =======================
+const getMyChildren = async (req, res) => {
+
+    try {
+
+        const children = await Child.find({
+            parent: req.user.id
+        });
+
+        return res.status(200).json({
+            success: true,
+            children
+        });
+
+    } catch (err) {
+
+        console.error("Get My Children Error:", err);
+
+        return res.status(500).json({
+            success: false,
+            message: "Unable to fetch children."
+        });
+
+    }
+};
+
 const updateInterests = async (req, res) => {
 
     try {
 
         const { interests } = req.body;
 
-        const child = await Child.findByIdAndUpdate(
-            req.params.id,
-            { interests },
-            { returnDocument: "after" }
+        if (!Array.isArray(interests)) {
+            return res.status(400).json({
+                success: false,
+                message: "Interests must be an array."
+            });
+        }
+
+        const child = await Child.findOneAndUpdate(
+            {
+                _id: req.params.id,
+                parent: req.user.id
+            },
+            {
+                interests
+            },
+            {
+                new: true
+            }
         );
 
-        res.status(200).json({
+        if (!child) {
+            return res.status(404).json({
+                success: false,
+                message: "Child not found or access denied."
+            });
+        }
+
+        return res.status(200).json({
             success: true,
+            message: "Interests updated successfully.",
             child
         });
 
     } catch (err) {
-        console.error(err);
-        res.status(500).json({
+
+        console.error("Update Interests Error:", err);
+
+        return res.status(500).json({
             success: false,
-            message: err.message
+            message: "Unable to update interests."
         });
 
     }
 };
 
 const updateGoals = async (req, res) => {
-  try {
 
-    const { goals } = req.body;
+    try {
 
-    const child = await Child.findByIdAndUpdate(
-      req.params.id,
-      { goals },
-      { returnDocument: "after" }
-    );
+        const { goals } = req.body;
 
-    res.status(200).json({
-      success: true,
-      child,
-    });
+        if (!Array.isArray(goals)) {
+            return res.status(400).json({
+                success: false,
+                message: "Goals must be an array."
+            });
+        }
 
-  } catch (err) {
+        const child = await Child.findOneAndUpdate(
+            {
+                _id: req.params.id,
+                parent: req.user.id
+            },
+            {
+                goals
+            },
+            {
+                new: true
+            }
+        );
 
-    res.status(500).json({
-      success: false,
-      message: "Unable to update goals",
-    });
+        if (!child) {
+            return res.status(404).json({
+                success: false,
+                message: "Child not found or access denied."
+            });
+        }
 
-  }
+        return res.status(200).json({
+            success: true,
+            message: "Goals updated successfully.",
+            child
+        });
+
+    } catch (err) {
+
+        console.error("Update Goals Error:", err);
+
+        return res.status(500).json({
+            success: false,
+            message: "Unable to update goals."
+        });
+
+    }
 };
-module.exports={ addChild, updateInterests, updateGoals};
+module.exports={ addChild, getMyChildren, updateInterests, updateGoals};

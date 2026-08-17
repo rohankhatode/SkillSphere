@@ -2,18 +2,18 @@ const generateToken = require("../utils/generateToken");
 
 const bcrypt = require("bcrypt");
 const User = require("../model/User");
-const { sign } = require("jsonwebtoken");
 
 // Check if user already exists
 const checkUser = async (req, res) => {
   try {
     const { email, phoneNumber } = req.body;
+    const normalizedEmail = email?.trim().toLowerCase();
 
     const user = await User.findOne({
       $or: [
-        { email },
-        { phoneNumber }
-      ]
+        ...(normalizedEmail ? [{ email: normalizedEmail }] : []),
+        ...(phoneNumber ? [{ phoneNumber }] : []),
+      ],
     });
 
     if (user) {
@@ -48,6 +48,7 @@ const signup = async (req, res) => {
       password
     } = req.body;
 
+    const normalizedEmail = email.trim().toLowerCase();
     const existingEmail = await User.findOne({ email });
 
         if (existingEmail) {
@@ -68,7 +69,7 @@ const signup = async (req, res) => {
 
     const hashedPassword =
       await bcrypt.hash(password, 10);
-    const normalizedEmail = email.trim().toLowerCase();
+
     const user = new User({
 
       fullName,

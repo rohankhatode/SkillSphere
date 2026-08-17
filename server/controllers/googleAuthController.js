@@ -1,34 +1,63 @@
+const { OAuth2Client } = require("google-auth-library");
+
 const User = require("../model/User");
 const generateToken = require("../utils/generateToken");
 
-const googleAuth = async (req, res) => {
+const googleClient = new OAuth2Client(
+    process.env.GOOGLE_CLIENT_ID
+);
 
+const googleAuth = async (req, res) => {
     try {
 
-        const { fullName, email, picture } = req.body;
+        const { credential } = req.body;
 
-        if (!fullName || !email) {
+        if (!credential) {
             return res.status(400).json({
                 success: false,
-                message: "Full name and email are required."
+                message: "Google credential is required."
+            });
+        }
+
+        // Verify Google ID token
+        const ticket = await googleClient.verifyIdToken({
+            idToken: credential,
+            audience: process.env.GOOGLE_CLIENT_ID
+        });
+
+        const payload = ticket.getPayload();
+
+        const googleId = payload.sub;
+        const email = payload.email;
+        const fullName = payload.name || "";
+        const picture = payload.picture || "";
+
+        if (!googleId || !email) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid Google account information."
             });
         }
 
         const normalizedEmail = email.trim().toLowerCase();
 
+        // Find existing user
         let user = await User.findOne({
             email: normalizedEmail
         });
 
+        // Existing local account
         if (user && user.provider === "local") {
             return res.status(400).json({
                 success: false,
-                message: "This email is already registered using Email & Password."
+                message:
+                    "This email is already registered using Email & Password."
             });
         }
 
         let isNewUser = false;
 
+        // Create Google user
         if (!user) {
 
             isNewUser = true;
@@ -39,20 +68,33 @@ const googleAuth = async (req, res) => {
                 phoneNumber: "",
                 password: "",
                 provider: "google",
-                profilePicture: picture || ""
+                profilePicture: picture || "",
+                isVerified: true,
+                
             });
 
+        } else {
+
+            // Update Google profile information
+            user.fullName = fullName.trim() || user.fullName;
+            user.profilePicture = picture || user.profilePicture;
+
+            await user.save();
         }
 
+        // Generate SkillSphere JWT
         const token = generateToken(user);
 
-        res.status(200).json({
+        return res.status(200).json({
             success: true,
             message: isNewUser
                 ? "Google Signup Successful"
                 : "Google Login Successful",
+
             token,
+
             isNewUser,
+
             user: {
                 id: user._id,
                 fullName: user.fullName,
@@ -62,17 +104,17 @@ const googleAuth = async (req, res) => {
             }
         });
 
-    } catch (err) {
+    } catch (error) {
 
-        console.error(err);
+        console.error("Google Authentication Error:", error);
 
-        res.status(500).json({
+        return res.status(401).json({
             success: false,
-            message: "Google Authentication Failed"
+            message: "Invalid Google authentication."
         });
-
     }
-
 };
 
-module.exports = { googleAuth };
+module.exports = {
+    googleAuth
+};

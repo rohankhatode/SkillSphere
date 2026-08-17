@@ -66,8 +66,14 @@ function Sidebar() {
   };
 
   const handleLogout = () => {
+    // Remove persistent authentication
     localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    localStorage.removeItem("childId");
+    sessionStorage.removeItem("childId");
+    // Remove session authentication
     sessionStorage.removeItem("token");
+    sessionStorage.removeItem("user");
 
     navigate("/login");
   };
