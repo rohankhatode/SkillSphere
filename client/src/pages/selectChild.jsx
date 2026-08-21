@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import API_URL from "../config/api";
 
@@ -9,11 +9,8 @@ function SelectChild() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    fetchChildren();
-  }, []);
-
-  const fetchChildren = async () => {
+  
+  const fetchChildren = useCallback(async () => {
     try {
       setIsLoading(true);
       setError("");
@@ -70,7 +67,12 @@ function SelectChild() {
     } finally {
       setIsLoading(false);
     }
-  };
+  },[navigate]
+);
+
+  useEffect(() => {
+    fetchChildren();
+  }, [fetchChildren]);
 
   const handleSelectChild = (child) => {
   console.log("SELECTED CHILD:", child);

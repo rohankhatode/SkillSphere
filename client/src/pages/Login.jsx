@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
 import { FaGoogle, FaApple } from "react-icons/fa";
 import { FiSearch, FiMapPin, FiUser, FiAward } from "react-icons/fi";
@@ -22,25 +22,13 @@ function Login() {
   const [success, setSuccess] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
 
-  /* =====================================================
-     CHECK EXISTING LOGIN
-  ===================================================== */
-
-  useEffect(() => {
-    const token =
-      localStorage.getItem("token") ||
-      sessionStorage.getItem("token");
-
-    if (token) {
-      redirectAfterLogin(token);
-    }
-  },[]);
+  
 
   /* =====================================================
      REDIRECT AFTER LOGIN
   ===================================================== */
 
-  const redirectAfterLogin = async (
+  const redirectAfterLogin = useCallback(async (
     token,
     isNewGoogleUser = false
   ) => {
@@ -94,43 +82,58 @@ function Login() {
       */
 
       if (
-  data.success &&
-  data.children &&
-  data.children.length > 0
-) {
-  if (data.children.length === 1) {
-    const child = data.children[0];
+        data.success &&
+        data.children &&
+        data.children.length > 0
+      ) {
+        if (data.children.length === 1) {
+          const child = data.children[0];
 
-    const storage = rememberMe
-      ? localStorage
-      : sessionStorage;
+          const storage = rememberMe
+            ? localStorage
+            : sessionStorage;
 
-    storage.setItem("childId", child._id);
+          storage.setItem("childId", child._id);
 
-    if (rememberMe) {
-      sessionStorage.removeItem("childId");
-    } else {
-      localStorage.removeItem("childId");
+          if (rememberMe) {
+            sessionStorage.removeItem("childId");
+          } else {
+            localStorage.removeItem("childId");
+          }
+
+          navigate("/dashboard");
+        } else {
+          navigate("/select-child");
+        }
+      } else {
+        navigate("/Welcome");
+      }
+      } catch (error) {
+        console.error(
+          "Redirect After Login Error:",
+          error
+        );
+
+        setError(
+          "Unable to load child profile."
+        );
+      }
+    },[navigate,rememberMe]
+  );
+
+  /* =====================================================
+     CHECK EXISTING LOGIN
+  ===================================================== */
+
+  useEffect(() => {
+    const token =
+      localStorage.getItem("token") ||
+      sessionStorage.getItem("token");
+
+    if (token) {
+      redirectAfterLogin(token);
     }
-
-    navigate("/dashboard");
-  } else {
-    navigate("/select-child");
-  }
-} else {
-  navigate("/Welcome");
-}
-    } catch (error) {
-      console.error(
-        "Redirect After Login Error:",
-        error
-      );
-
-      setError(
-        "Unable to load child profile."
-      );
-    }
-  };
+  },[redirectAfterLogin]);
 
   /* =====================================================
      NORMAL EMAIL/PASSWORD LOGIN
