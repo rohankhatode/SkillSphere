@@ -4,6 +4,7 @@ import { Routes, Route } from "react-router-dom";
 import Loading from "./pages/Home";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
+import SelectChild from "./pages/selectChild";
 import AddChild from "./pages/AddChild";
 import Dashboard from "./pages/Dashboard";
 import ProtectedRoute from "./Components/ProtectedRoute";
@@ -25,6 +26,7 @@ function App() {
       <Route path="/" element={<Loading />} />
       <Route path="/login" element={<Login />} />
       <Route path="/Signup" element={<Signup />} />
+      <Route path="/select-child" element={<SelectChild />}/>
       <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute> } />
       <Route path="/add-child" element={<ProtectedRoute><AddChild /></ProtectedRoute>} />
       <Route path="/interests" element={<ProtectedRoute><Interests /></ProtectedRoute>} />
@@ -36,7 +38,7 @@ function App() {
       <Route path="/upcoming-exam" element={<ProtectedRoute><UpcomingExamPage /></ProtectedRoute>} />
       <Route path="/exam-information" element={<ProtectedRoute><ExamInformation /></ProtectedRoute>} />
       <Route path="/exam-start" element={<ProtectedRoute><ExamStart /></ProtectedRoute>} />
-      <Route path="/result" element={<ProtectedRoute><ResultPage /></ProtectedRoute>} />
+      <Route path="/result/:resultId" element={<ProtectedRoute><ResultPage /></ProtectedRoute>} />
       
     </Routes>
   );

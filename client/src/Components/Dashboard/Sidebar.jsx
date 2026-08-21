@@ -1,5 +1,6 @@
-import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+
+import { useNavigate, useLocation } from "react-router-dom";
+import { useTheme } from "../../Components/Dashboard/ThemeContext";
 
 import { 
   FiGrid, 
@@ -18,9 +19,9 @@ import {
 
 function Sidebar() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { darkMode, setDarkMode } = useTheme();
 
-  const [activeItem, setActiveItem] = useState("Overview");
-  const [darkMode, setDarkMode] = useState(false);
 
   const menuItems = [
     {
@@ -61,7 +62,7 @@ function Sidebar() {
   ];
 
   const handleNavigation = (item) => {
-    setActiveItem(item.name);
+    
     navigate(item.path);
   };
 
@@ -87,8 +88,7 @@ function Sidebar() {
         {menuItems.map((item) => {
 
           const Icon = item.icon;
-          const isActive = activeItem === item.name;
-
+          const isActive = location.pathname === item.path;
           return (
             <button
               key={item.name}
@@ -120,7 +120,7 @@ function Sidebar() {
 
       <button
         onClick={() => {
-          setActiveItem("Help Center");
+          
           navigate("/help-center");
         }}
         className="w-full h-[44px] flex items-center px-[12px] rounded-[18px] text-[#626274] hover:bg-[#ECE8FA]">

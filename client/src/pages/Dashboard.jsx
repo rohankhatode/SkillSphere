@@ -23,7 +23,8 @@ function Dashboard() {
 
             try {
 
-                const childId = localStorage.getItem("childId");
+                const childId = localStorage.getItem("childId")||
+                sessionStorage.getItem("childId");
 
                 const token =
                     localStorage.getItem("token") ||

@@ -1,6 +1,27 @@
 const Result = require("../model/Result");
 const Question = require("../model/Question");
 const Exam = require("../model/Exam");
+const Child = require("../model/Child");
+
+const getAuthorizedResult = async (resultId, parentId) => {
+  const result = await Result.findById(resultId);
+
+  if (!result) {
+    return null;
+  }
+
+  const child = await Child.findOne({
+    _id: result.child,
+    parent: parentId,
+  });
+
+  if (!child) {
+    return null;
+  }
+
+  return result;
+};
+
 /*
 =========================================
 CREATE / START RESULT
@@ -29,10 +50,18 @@ const createResult = async (req, res) => {
 
     if (result) {
       return res.status(200).json({
-        success: true,
-        message: "Existing exam attempt found",
-        result,
-      });
+  success: true,
+  message: "Existing exam attempt found",
+
+  result: {
+    resultId: result._id,
+    examId: result.exam,
+    childId: result.child,
+    status: result.status,
+    totalQuestions: result.totalQuestions,
+    startedAt: result.startedAt,
+  },
+});
     }
 
     // Count questions
@@ -53,10 +82,18 @@ const createResult = async (req, res) => {
     });
 
     return res.status(201).json({
-      success: true,
-      message: "Exam attempt created successfully",
-      result,
-    });
+  success: true,
+  message: "Exam attempt created successfully",
+
+  result: {
+    resultId: result._id,
+    examId: result.exam,
+    childId: result.child,
+    status: result.status,
+    totalQuestions: result.totalQuestions,
+    startedAt: result.startedAt,
+  },
+});
   } catch (error) {
     console.error("Create Result Error:", error);
 
@@ -106,7 +143,10 @@ const saveAnswer = async (req, res) => {
     -----------------------------------------
     */
 
-    const result = await Result.findById(resultId);
+    const result = await getAuthorizedResult(
+      resultId,
+      req.user.id
+    );
 
     if (!result) {
       return res.status(404).json({
@@ -293,6 +333,108 @@ const saveAnswer = async (req, res) => {
   }
 };
 
+const clearAnswer = async (req, res) => {
+  try {
+    const { resultId, questionId } = req.params;
+
+    if (!resultId || !questionId) {
+      return res.status(400).json({
+        success: false,
+        message: "resultId and questionId are required",
+      });
+    }
+
+    const result = await getAuthorizedResult(
+      resultId,
+      req.user.id
+    );
+
+    if (!result) {
+      return res.status(404).json({
+        success: false,
+        message: "Exam attempt not found",
+      });
+    }
+
+    if (result.status === "completed") {
+      return res.status(400).json({
+        success: false,
+        message: "Exam has already been submitted",
+      });
+    }
+
+    result.answers = result.answers.filter(
+      (answer) =>
+        answer.question.toString() !==
+        questionId.toString()
+    );
+
+    result.attemptedQuestions =
+      result.answers.length;
+
+    result.score = result.answers.reduce(
+      (total, answer) =>
+        total + (answer.marksObtained || 0),
+      0
+    );
+
+    const totalMarksData =
+      await Question.aggregate([
+        {
+          $match: {
+            exam: result.exam,
+          },
+        },
+        {
+          $group: {
+            _id: null,
+            totalMarks: {
+              $sum: "$marks",
+            },
+          },
+        },
+      ]);
+
+    const totalMarks =
+      totalMarksData[0]?.totalMarks || 0;
+
+    result.percentage =
+      totalMarks > 0
+        ? Math.round(
+            (result.score / totalMarks) * 100
+          )
+        : 0;
+
+    await result.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Answer cleared successfully",
+
+      result: {
+        attemptedQuestions:
+          result.attemptedQuestions,
+
+        score:
+          result.score,
+
+        percentage:
+          result.percentage,
+      },
+    });
+
+  } catch (error) {
+    console.error(
+      "Clear Answer Error:",
+      error
+    );
+
+    return res.status(500).json({
+      success: false,
+      message: "Unable to clear answer",
+    });
+  }
+};
 
 /*
 =========================================
@@ -303,11 +445,12 @@ GET RESULT / ATTEMPT
 const getResult = async (req, res) => {
   try {
     const { resultId } = req.params;
+    const parentId = req.user.id;
 
-    const result = await Result.findById(resultId)
-      .populate("exam")
-      .populate("child")
-      .populate("answers.question");
+    const result = await getAuthorizedResult(
+      resultId,
+      req.user.id
+    );
 
     if (!result) {
       return res.status(404).json({
@@ -315,6 +458,10 @@ const getResult = async (req, res) => {
         message: "Exam attempt not found",
       });
     }
+
+    await result.populate("exam");
+    await result.populate("child");
+    await result.populate("answers.question");
 
     return res.status(200).json({
       success: true,
@@ -326,6 +473,57 @@ const getResult = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Unable to fetch result",
+    });
+  }
+};
+
+//RESULT BY CHILDID
+
+const getResultsByChild = async (req, res) => {
+  try {
+    const { childId } = req.params;
+
+    // Logged-in parent
+    const parentId = req.user.id;
+
+    // Find child belonging to this parent
+    const child = await Child.findOne({
+      _id: childId,
+      parent: parentId,
+    });
+
+    if (!child) {
+      return res.status(404).json({
+        success: false,
+        message: "Child not found",
+      });
+    }
+
+    // Get results for this child
+    const results = await Result.find({
+      child: childId,
+    })
+      .populate(
+        "exam",
+        "title subject grade date startTime"
+      )
+      .sort({ createdAt: -1 });
+
+    return res.status(200).json({
+      success: true,
+      count: results.length,
+      results,
+    });
+
+  } catch (error) {
+    console.error(
+      "Get Child Results Error:",
+      error
+    );
+
+    return res.status(500).json({
+      success: false,
+      message: "Unable to fetch child results",
     });
   }
 };
@@ -353,7 +551,10 @@ const submitResult = async (req, res) => {
     -----------------------------------------
     */
 
-    const result = await Result.findById(resultId);
+    const result = await getAuthorizedResult(
+      resultId,
+      req.user.id
+    );
 
     if (!result) {
       return res.status(404).json({
@@ -513,6 +714,8 @@ const submitResult = async (req, res) => {
 module.exports = {
   createResult,
   saveAnswer,
+  clearAnswer,
   getResult,
+  getResultsByChild,
   submitResult,
 };

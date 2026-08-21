@@ -3,6 +3,7 @@ const express = require("express");
 const router = express.Router();
 
 const authMiddleware = require("../middleware/authMiddleware");
+const adminMiddleware = require("../middleware/adminMiddleware");
 
 const {
   createExam,
@@ -10,7 +11,6 @@ const {
   getExamById,
   getUpcomingExams,
   getExamInformation,
-  startExam,
   updateExam,
   deleteExam,
 } = require("../controllers/examController");
@@ -23,6 +23,7 @@ const {
 router.post(
   "/",
   authMiddleware,
+  adminMiddleware,
   createExam
 );
 
@@ -58,15 +59,6 @@ router.get(
     getExamInformation
 );
 
-// =====================================================
-// START EXAM
-// =====================================================
-
-router.post(
-    "/:examId/:childId/start",
-    authMiddleware,
-    startExam
-);
 
 // =====================================================
 // GET SINGLE EXAM
@@ -86,6 +78,7 @@ router.get(
 router.put(
   "/:id",
   authMiddleware,
+  adminMiddleware,
   updateExam
 );
 
@@ -97,8 +90,8 @@ router.put(
 router.delete(
   "/:id",
   authMiddleware,
+  adminMiddleware,
   deleteExam
 );
-
 
 module.exports = router;

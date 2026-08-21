@@ -2,7 +2,7 @@
 import { Bell, CalendarDays, Play, ArrowRight } from "lucide-react";
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import API_URL from "../../config/api";
+
 
 function UpcomingExam({exams=[],childId}) {
   
@@ -88,7 +88,7 @@ function UpcomingExam({exams=[],childId}) {
   // START EXAM
   // --------------------------------------------------
 
-  const handleStartExam = async () => {
+  const handleStartExam = () => {
   try {
     const token =
       localStorage.getItem("token") ||
@@ -111,42 +111,17 @@ function UpcomingExam({exams=[],childId}) {
       return;
     }
 
-    const response = await fetch(
-      `${API_URL}/exams/${examId}/${childId}/start`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      }
-    );
+    console.log("Navigating to Exam Information:", {
+      examId,
+      childId,
+      exam: mainExam,
+    });
 
-    const result = await response.json();
-
-    console.log("Start Exam Response:", result);
-
-    if (!response.ok) {
-      alert(result.message || "Unable to start exam");
-      return;
-    }
-
-    const resultId =
-      result?.data?.resultId ||
-      result?.result?.resultId ||
-      result?.result?._id;
-
-    if (!resultId) {
-      console.error("Result ID missing:", result);
-      alert("Exam started but Result ID was not returned.");
-      return;
-    }
-
-    navigate(`/exam/${examId}/information`, {
+    navigate("/exam-information", {
       state: {
         examId,
         childId,
-        resultId,
+        exam: mainExam,
       },
     });
 
@@ -331,7 +306,7 @@ function UpcomingExam({exams=[],childId}) {
 
             <button
               onClick={handleStartExam}
-              disabled={daysLeft > 0}
+            
               className="
                 flex items-center gap-2
                 px-4 py-2

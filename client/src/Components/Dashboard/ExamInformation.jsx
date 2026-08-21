@@ -2,6 +2,7 @@ import React, { useState} from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import owlHeader from "../../assets/images/owl img1.png";
 import owl from "../../assets/images/owl img2.png";
+import API_URL from "../../config/api";
 import {
   ArrowLeft,
   ArrowRight,
@@ -25,12 +26,11 @@ function ExamInformation() {
   const {
     examId,
     childId,
-    resultId,
+    exam,
   } = location.state || {};
 
   console.log("Exam ID:", examId);
   console.log("Child ID:", childId);
-  console.log("Result ID:", resultId);
 
   const beforeStart = [
     {
@@ -132,7 +132,7 @@ function ExamInformation() {
     "Stay calm — you have got this.",
   ];
 
-  if (!examId || !childId || !resultId) {
+  if (!examId || !childId) {
   return (
     <div className="min-h-screen flex items-center justify-center">
       <div className="text-center">
@@ -151,14 +151,90 @@ function ExamInformation() {
   );
 }
 
-const handleBeginExam = () => {
-  navigate(`/exam/${examId}/questions`, {
-    state: {
+const handleBeginExam = async () => {
+  try {
+    const token =
+      localStorage.getItem("token") ||
+      sessionStorage.getItem("token");
+
+    if (!token) {
+      alert("Please login again.");
+      return;
+    }
+
+    if (!examId || !childId) {
+      alert("Exam information is missing.");
+      return;
+    }
+
+    console.log("Starting exam:", {
       examId,
       childId,
-      resultId,
-    },
-  });
+    });
+
+    const response = await fetch(
+      `${API_URL}/results`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          examId,
+          childId,
+        }),
+      }
+    );
+
+    const data = await response.json();
+
+    console.log("Create Result Response:", data);
+
+    if (!response.ok) {
+      throw new Error(
+        data.message || "Unable to start exam"
+      );
+    }
+
+    // Backend returns:
+    // {
+    //   success: true,
+    //   result: {
+    //     resultId: "...",
+    //     examId: "...",
+    //     childId: "...",
+    //     status: "in-progress"
+    //   }
+    // }
+
+    const resultId = data.result?.resultId;
+
+    if (!resultId) {
+      throw new Error(
+        "Exam started, but resultId was not returned."
+      );
+    }
+
+    console.log("Created resultId:", resultId);
+
+    navigate("/exam-start", {
+      state: {
+        examId,
+        childId,
+        resultId,
+        exam,
+      },
+    });
+
+  } catch (error) {
+    console.error("Start Exam Error:", error);
+
+    alert(
+      error.message ||
+        "Unable to start exam. Please try again."
+    );
+  }
 };
   return (
     <div className="min-h-screen bg-white text-[#171321]">
@@ -170,16 +246,19 @@ const handleBeginExam = () => {
         <main className="flex-1">
 
           {/* Back */}
-          <button className="flex items-center gap-2 text-[24px] font-medium mb-8">
+          <button 
+        
+          className="flex items-center gap-2 text-[24px] font-medium mb-16">
             <ArrowLeft size={21} />
+
             Back
           </button>
 
 
           {/* ================= HERO ================= */}
-          <section className="rounded-[18px] overflow-hidden border border-[#E8E4EF]">
+          <section className="rounded-[20px] border border-[#E8E4EF]">
 
-            <div className="relative h-[132px] bg-[#6D2BD1] px-8 flex items-center overflow-hidden">
+            <div className="relative rounded-t-2xl h-[132px] bg-[#6D2BD1] px-8 flex items-center overflow-visible">
 
               {/* Decorative circles */}
               <div className="absolute -left-8 -bottom-20 w-[210px] h-[210px] rounded-full bg-white/10" />
@@ -202,10 +281,12 @@ const handleBeginExam = () => {
               </div>
 
               {/* Owl illustration placeholder */}
-              <div className="mb-7">
-                
-                <img src={owlHeader} alt="owl" className="w-[333px] h-[222px]"/>
-
+              <div className="absolute right-0 top-[-80px] z-30">
+                <img
+                  src={owlHeader}
+                  alt="Owl"
+                  className="w-[333px] h-[222px] object-contain"
+                />
               </div>
 
             </div>
@@ -216,12 +297,17 @@ const handleBeginExam = () => {
 
               <InfoBox
                 title="Duration"
-                value="45 minutes"
+                value={`${exam?.duration ?? 45} minutes`}
               />
 
               <InfoBox
                 title="Questions"
-                value="12"
+                value={
+                  exam?.questionCount ??
+                  exam?.questionsCount ??
+                  exam?.questions?.length ??
+                  0
+                }
               />
 
               <InfoBox
@@ -472,13 +558,13 @@ const handleBeginExam = () => {
 
 function InfoBox({ title, value }) {
   return (
-    <div className="bg-[#F8F8FA] rounded-[18px] px-4 py-3 h-[54px]">
+    <div className="bg-[#F8F8FA] rounded-[28px] px-4 py-3 h-[72px]">
 
-      <p className="text-[9px] text-[#89858F]">
+      <p className="text-[12px] text-[#89858F]">
         {title}
       </p>
 
-      <p className="text-[11px] font-semibold mt-1">
+      <p className="text-[14px] font-semibold mt-1">
         {value}
       </p>
 

@@ -1,8 +1,6 @@
 const Exam = require("../model/Exam");
 const Child = require("../model/Child");
-const ExamResult = require("../model/ExamResult");
-
-
+const Result = require("../model/Result");
 // =====================================================
 // CREATE EXAM
 // =====================================================
@@ -292,7 +290,7 @@ const getExamInformation = async (req, res) => {
         // =================================================
 
         const existingResult =
-            await ExamResult.findOne({
+            await Result.findOne({
 
                 exam: examId,
 
@@ -391,200 +389,6 @@ const getExamInformation = async (req, res) => {
 };
 
 // =====================================================
-// START EXAM
-// =====================================================
-
-const startExam = async (req, res) => {
-
-    try {
-
-        const userId = req.user.id;
-
-        const { examId, childId } = req.params;
-
-
-        // =================================================
-        // FIND CHILD
-        // =================================================
-
-        const child = await Child.findOne({
-
-            _id: childId,
-
-            parent: userId
-
-        });
-
-
-        if (!child) {
-
-            return res.status(404).json({
-
-                success: false,
-
-                message:
-                    "Child not found or unauthorized"
-
-            });
-
-        }
-
-
-        // =================================================
-        // FIND EXAM
-        // =================================================
-
-        const exam = await Exam.findById(examId);
-
-
-        if (!exam) {
-
-            return res.status(404).json({
-
-                success: false,
-
-                message: "Exam not found"
-
-            });
-
-        }
-
-
-        // =================================================
-        // CHECK ASSIGNMENT
-        // =================================================
-
-        const isAssigned =
-            exam.assignedChildren.some(
-                (id) => id.toString() === childId
-            );
-
-
-        const gradeMatches =
-            exam.grade === child.grade;
-
-
-        if (!isAssigned && !gradeMatches) {
-
-            return res.status(403).json({
-
-                success: false,
-
-                message:
-                    "This exam is not assigned to this child"
-
-            });
-
-        }
-
-
-        // =================================================
-        // CHECK IF ALREADY ATTEMPTED
-        // =================================================
-
-        const existingResult =
-            await ExamResult.findOne({
-
-                exam: examId,
-
-                child: childId
-
-            });
-
-
-        if (existingResult) {
-
-            return res.status(400).json({
-
-                success: false,
-
-                message:
-                    "This exam has already been started or attempted"
-
-            });
-
-        }
-
-
-        // =================================================
-        // CREATE EXAM RESULT
-        // =================================================
-
-        const examResult =
-            await ExamResult.create({
-
-                exam: examId,
-
-                child: childId,
-
-                totalMarks:
-                    exam.totalMarks,
-
-                startedAt:
-                    new Date()
-
-            });
-
-
-        // =================================================
-        // RESPONSE
-        // =================================================
-
-        return res.status(201).json({
-
-            success: true,
-
-            message:
-                "Exam started successfully",
-
-            data: {
-
-                examId: exam._id,
-
-                childId: child._id,
-
-                resultId:
-                    examResult._id,
-
-                startedAt:
-                    examResult.startedAt,
-
-                duration:
-                    exam.duration,
-
-                totalQuestions:
-                    exam.totalQuestions,
-
-                totalMarks:
-                    exam.totalMarks
-
-            }
-
-        });
-
-
-    } catch (error) {
-
-        console.error(
-            "START EXAM ERROR:",
-            error
-        );
-
-
-        return res.status(500).json({
-
-            success: false,
-
-            message:
-                "Unable to start exam"
-
-        });
-
-    }
-
-};
-
-// =====================================================
 // UPDATE EXAM
 // =====================================================
 
@@ -664,7 +468,6 @@ module.exports = {
   getExamById,
   getUpcomingExams,
   getExamInformation,
-  startExam,
   updateExam,
   deleteExam,
 };

@@ -5,7 +5,9 @@ const router = express.Router();
 const {
   createResult,
   saveAnswer,
+  clearAnswer,
   getResult,
+  getResultsByChild,
   submitResult,
 } = require("../controllers/resultController");
 
@@ -25,6 +27,13 @@ router.put(
   saveAnswer
 );
 
+//CLEAR ANSWER
+router.delete(
+  "/:resultId/answers/:questionId",
+  authMiddleware,
+  clearAnswer
+);
+
 // SUBMIT EXAM
 router.put(
   "/:resultId/submit",
@@ -37,6 +46,13 @@ router.get(
   "/:resultId",
   authMiddleware,
   getResult
+);
+
+//RESULT BY CHILDID
+router.get(
+  "/child/:childId",
+  authMiddleware,
+  getResultsByChild
 );
 
 module.exports = router;

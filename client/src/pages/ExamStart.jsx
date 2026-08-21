@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import API_URL from "../config/api";
 
@@ -71,7 +71,8 @@ function ExamStart() {
   // TIMER
   // --------------------------------------------------
 
-  const [timeLeft, setTimeLeft] = useState(45 * 60);
+  const [timeLeft, setTimeLeft] = useState(0);
+  const submitStartedRef = useRef(false);
 
   // ==================================================
   // FETCH QUESTIONS
@@ -137,30 +138,140 @@ function ExamStart() {
     fetchQuestions();
   }, [examId]);
 
+  useEffect(() => {
+    const fetchExistingAnswers = async () => {
+      try {
+        const token =
+          localStorage.getItem("token") ||
+          sessionStorage.getItem("token");
+
+        if (!token || !resultId) {
+          return;
+        }
+
+        const response = await fetch(
+          `${API_URL}/results/${resultId}`,
+          {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+          }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(
+            data.message ||
+            "Unable to load saved answers"
+          );
+        }
+
+        const savedAnswers = {};
+
+        data.result?.answers?.forEach((answer) => {
+          const questionId =
+            answer.question?._id ||
+            answer.question;
+
+          savedAnswers[questionId] =
+            answer.selectedAnswer;
+        });
+
+        setAnswers(savedAnswers);
+
+      } catch (error) {
+        console.error(
+          "Fetch Existing Answers Error:",
+          error
+        );
+      }
+    };
+
+    fetchExistingAnswers();
+  }, [resultId]);
+
+  useEffect(() => {
+  if (!resultId) {
+    return;
+  }
+
+  const fetchExamTime = async () => {
+    try {
+      const token =
+        localStorage.getItem("token") ||
+        sessionStorage.getItem("token");
+
+      const response = await fetch(
+        `${API_URL}/results/${resultId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.message ||
+          "Unable to load exam time"
+        );
+      }
+
+      const startedAt =
+        new Date(data.result.startedAt).getTime();
+
+      const durationMinutes =
+        data.result.exam?.duration || 45;
+
+      const endTime =
+        startedAt +
+        durationMinutes * 60 * 1000;
+
+      const remainingSeconds = Math.max(
+        0,
+        Math.floor(
+          (endTime - Date.now()) / 1000
+        )
+      );
+
+      setTimeLeft(remainingSeconds);
+
+    } catch (error) {
+      console.error(
+        "Fetch Exam Time Error:",
+        error
+      );
+    }
+  };
+
+  fetchExamTime();
+}, [resultId]);
+
   // ==================================================
   // TIMER
   // ==================================================
 
   useEffect(() => {
-    // Don't start timer until questions are loaded
-    if (loading) {
+    if (loading || timeLeft <= 0) {
       return;
     }
 
     const timer = setInterval(() => {
-      setTimeLeft((previousTime) => {
-        if (previousTime <= 1) {
-          clearInterval(timer);
-
-          return 0;
-        }
-
-        return previousTime - 1;
-      });
+      setTimeLeft((previousTime) =>
+        previousTime > 0
+          ? previousTime - 1
+          : 0
+      );
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [loading]);
+  }, [loading, timeLeft]);
 
   // ==================================================
   // FORMAT TIMER
@@ -175,6 +286,86 @@ function ExamStart() {
       seconds
     ).padStart(2, "0")}`;
   };
+
+// ==================================================
+// SUBMIT EXAM
+// ==================================================
+
+  const submitExam = useCallback(async (autoSubmit=false) => {
+  try {
+    const token =
+      localStorage.getItem("token") ||
+      sessionStorage.getItem("token");
+
+    if (!token) {
+      alert("Please login again.");
+      return;
+    }
+
+    if (!resultId) {
+      alert("Exam attempt not found.");
+      return;
+    }
+
+    if (!autoSubmit) {
+      const confirmSubmit = window.confirm(
+        "Are you sure you want to submit the exam?"
+      );
+
+      if (!confirmSubmit) {
+        return;
+      }
+    }
+
+    const response = await fetch(
+      `${API_URL}/results/${resultId}/submit`,
+      {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    const data = await response.json();
+
+    console.log("Submit Exam Response:", data);
+
+    if (!response.ok) {
+      throw new Error(data.message || "Unable to submit exam");
+    }
+
+    const submittedResultId = data.result?.resultId;
+
+    if (!submittedResultId) {
+      throw new Error("Result ID was not returned after submission.");
+    }
+
+    console.log("Submitted Result ID:", submittedResultId);
+
+    navigate(`/result/${submittedResultId}`);
+
+      } catch (error) {
+        console.error("Submit Exam Error:", error);
+
+        alert(
+          error.message || "Unable to submit exam"
+        );
+      }
+    },[resultId, navigate]);
+
+    useEffect(() => {
+      if (
+        !loading &&
+        timeLeft === 0 &&
+        resultId &&
+        !submitStartedRef.current
+      ) {
+        submitStartedRef.current=true;
+        submitExam(true);
+      }
+    }, [timeLeft, loading, resultId, submitExam]);
 
   // ==================================================
   // LOADING STATE
@@ -398,84 +589,68 @@ function ExamStart() {
   // CLEAR ANSWER
   // ==================================================
 
-  const clearAnswer = () => {
-    const questionId = current._id;
+  const clearAnswer = async () => {
+    try {
+      const token =
+        localStorage.getItem("token") ||
+        sessionStorage.getItem("token");
 
-    setAnswers((previousAnswers) => {
-      const updatedAnswers = {
-        ...previousAnswers,
-      };
-
-      delete updatedAnswers[questionId];
-
-      return updatedAnswers;
-    });
-  };
-
-  // ==================================================
-// SUBMIT EXAM
-// ==================================================
-
-const submitExam = async () => {
-  try {
-    const token =
-      localStorage.getItem("token") ||
-      sessionStorage.getItem("token");
-
-    if (!token) {
-      alert("Please login again.");
-      return;
-    }
-
-    if (!resultId) {
-      alert("Exam attempt not found.");
-      return;
-    }
-
-    const confirmSubmit = window.confirm(
-      "Are you sure you want to submit the exam?"
-    );
-
-    if (!confirmSubmit) {
-      return;
-    }
-
-    const response = await fetch(
-      `${API_URL}/results/${resultId}/submit`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
+      if (!token) {
+        alert("Please login again.");
+        return;
       }
-    );
 
-    const data = await response.json();
+      if (!resultId) {
+        alert("Exam attempt not found.");
+        return;
+      }
 
-    console.log("Submit Exam Response:", data);
+      if (!current?._id) {
+        return;
+      }
 
-    if (!response.ok) {
-      throw new Error(
-        data.message || "Unable to submit exam"
+      const response = await fetch(
+        `${API_URL}/results/${resultId}/answers/${current._id}`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.message ||
+          "Unable to clear answer"
+        );
+      }
+
+      setAnswers((previousAnswers) => {
+        const updatedAnswers = {
+          ...previousAnswers,
+        };
+
+        delete updatedAnswers[current._id];
+
+        return updatedAnswers;
+      });
+
+    } catch (error) {
+      console.error(
+        "Clear Answer Error:",
+        error
+      );
+
+      alert(
+        error.message ||
+        "Unable to clear answer"
       );
     }
-
-    // Navigate to result page
-    navigate("/result", {
-      state: {
-        resultId: data.result.resultId,
-      },
-    });
-
-  } catch (error) {
-    console.error("Submit Exam Error:", error);
-
-    alert(
-      error.message || "Unable to submit exam"
-    );
-  }
-};
+  };
 
   // ==================================================
   // QUESTION STATUS COLOR

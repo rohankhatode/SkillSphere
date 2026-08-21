@@ -4,15 +4,12 @@ const Exam = require("../model/Exam");
 const PsychometricResult =
     require("../model/PsychometricResult");
 
-const ExamResult =
-    require("../model/ExamResult");
-
 const Certificate =
     require("../model/Certificate");
 
 const CourseEnrollment =
     require("../model/CourseEnrollment");
-
+const Result = require("../model/Result");
 
 const getDashboardOverview = async (req, res) => {
 
@@ -127,7 +124,7 @@ const getDashboardOverview = async (req, res) => {
         // ==========================================
 
         const completedTests =
-            await ExamResult.countDocuments({
+            await Result.countDocuments({
 
                 child: childId
 
@@ -654,13 +651,30 @@ const updateAccountDetails = async (req, res) => {
 
         } = req.body;
 
+        const phoneRegex = /^[6-9]\d{9}$/;
 
+            if (phone !== undefined && !phoneRegex.test(phone)) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Phone number must be a valid 10-digit Indian mobile number"
+                });
+            }
+
+            if (
+                emergencyContact !== undefined &&
+                !phoneRegex.test(emergencyContact)
+            ) {
+                return res.status(400).json({
+                    success: false,
+                    message:
+                        "Emergency contact must be a valid 10-digit Indian mobile number"
+                });
+            }
         /*
         ============================================
         UPDATE CHILD
         ============================================
         */
-
         if (fullName !== undefined)
             child.childName = fullName;
 

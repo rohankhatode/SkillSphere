@@ -34,7 +34,7 @@ function Login() {
     if (token) {
       redirectAfterLogin(token);
     }
-  },);
+  },[]);
 
   /* =====================================================
      REDIRECT AFTER LOGIN
@@ -94,60 +94,32 @@ function Login() {
       */
 
       if (
-        data.success &&
-        data.children &&
-        data.children.length > 0
-      ) {
-        /*
-          Existing parent has at least one child.
+  data.success &&
+  data.children &&
+  data.children.length > 0
+) {
+  if (data.children.length === 1) {
+    const child = data.children[0];
 
-          Store the first child's ID so that
-          dashboard and other pages can use it.
-        */
+    const storage = rememberMe
+      ? localStorage
+      : sessionStorage;
 
-        const child = data.children[0];
+    storage.setItem("childId", child._id);
 
-        const storage = rememberMe
-          ? localStorage
-          : sessionStorage;
+    if (rememberMe) {
+      sessionStorage.removeItem("childId");
+    } else {
+      localStorage.removeItem("childId");
+    }
 
-        storage.setItem(
-          "childId",
-          child._id
-        );
-
-        /*
-          Remove old childId from the other storage.
-          This prevents stale child IDs.
-        */
-
-        if (rememberMe) {
-          sessionStorage.removeItem("childId");
-        } else {
-          localStorage.removeItem("childId");
-        }
-
-        console.log(
-          "Existing child found:",
-          child._id
-        );
-
-        /*
-          Existing user + existing child
-          → Dashboard
-        */
-
-        navigate("/dashboard");
-      } else {
-        /*
-          User exists but has no child.
-
-          → Welcome page
-          → Set Up Child Profile
-        */
-
-        navigate("/Welcome");
-      }
+    navigate("/dashboard");
+  } else {
+    navigate("/select-child");
+  }
+} else {
+  navigate("/Welcome");
+}
     } catch (error) {
       console.error(
         "Redirect After Login Error:",
@@ -313,12 +285,17 @@ function Login() {
 
         This is the important part.
 
-        Existing user with child
-        → Dashboard
+        /*
+  0 children
+  → Welcome
 
-        Existing user without child
-        → Welcome
-      */
+  1 child
+  → Automatically select child
+  → Dashboard
+
+  Multiple children
+  → Select Child
+*/
 
       await redirectAfterLogin(
         data.token,
@@ -508,18 +485,19 @@ function Login() {
         NAVIGATION
         =================================================
 
-        New Google account
-        → Welcome
+        /*
+  New Google account
+  → Welcome
 
-        Existing Google account
-        → Check children
+  Existing Google account with no child
+  → Welcome
 
-        Existing Google account + child
-        → Dashboard
+  Existing Google account with one child
+  → Dashboard
 
-        Existing Google account + no child
-        → Welcome
-      */
+  Existing Google account with multiple children
+  → Select Child
+*/
 
       await redirectAfterLogin(
         data.token,

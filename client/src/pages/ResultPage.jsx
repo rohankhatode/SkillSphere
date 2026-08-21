@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import API_URL from "../config/api";
 import {
   Check,
@@ -9,10 +9,8 @@ import {
 } from "lucide-react";
 
 function ResultPage() {
-  const location = useLocation();
   const navigate = useNavigate();
-
-  const resultId = location.state?.resultId;
+  const { resultId } = useParams();
 
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -293,6 +291,7 @@ function ResultPage() {
               transition
               hover:bg-gray-50
             "
+            onClick={()=> navigate("/portfolio")}
           >
             View portfolio
           </button>
@@ -312,6 +311,7 @@ function ResultPage() {
               transition
               hover:bg-[#6D28D9]
             "
+            onClick={()=> navigate("/dashboard")}
           >
             Back to exams
             <ArrowRight size={16} />

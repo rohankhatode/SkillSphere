@@ -86,7 +86,8 @@ function AccountDetails() {
       setError("");
 
       const childId =
-        localStorage.getItem("childId");
+        localStorage.getItem("childId")||
+        sessionStorage.getItem("childId");
 
       const token =
         localStorage.getItem("token") ||
@@ -259,20 +260,34 @@ function AccountDetails() {
   // =====================================================
 
   const handleChange = (e) => {
+    const { name, value } = e.target;
 
-    const {
-      name,
-      value
-    } = e.target;
+    // Phone number validation
+    if (
+      name === "phone" ||
+      name === "emergencyContact"
+    ) {
+      // Allow only numbers
+      const numericValue = value.replace(/\D/g, "");
 
+      // Maximum 10 digits
+      if (numericValue.length > 10) {
+        return;
+      }
+
+      setFormData((previous) => ({
+        ...previous,
+        [name]: numericValue,
+      }));
+
+      return;
+    }
 
     setFormData((previous) => ({
-
       ...previous,
-
       [name]: value,
-
     }));
+
 
   };
 
@@ -356,210 +371,131 @@ function AccountDetails() {
   // =====================================================
 
   const handleSave = async () => {
+    if (saving) return;
 
     try {
-
       setSaving(true);
-
       setSaveMessage("");
 
+    const phoneRegex = /^[6-9]\d{9}$/;
+
+      if (!phoneRegex.test(formData.phone)) {
+        setSaveMessage(
+          "Please enter a valid 10-digit phone number"
+        );
+        setSaving(false);
+        return;
+      }
+
+      if (!phoneRegex.test(formData.emergencyContact)) {
+        setSaveMessage(
+          "Please enter a valid 10-digit emergency contact number"
+        );
+        setSaving(false);
+        return;
+      }
+
       const childId =
-        localStorage.getItem("childId");
+        localStorage.getItem("childId") ||
+        sessionStorage.getItem("childId");
 
       const token =
         localStorage.getItem("token") ||
         sessionStorage.getItem("token");
 
-
       if (!childId) {
-
-        throw new Error(
-          "Child not found"
-        );
-
+        throw new Error("Child not found");
       }
-
 
       if (!token) {
-
-        throw new Error(
-          "User not authenticated"
-        );
-
+        throw new Error("User not authenticated");
       }
 
+      const cleanedInterests = formData.interests
+        .map((item) => item.trim())
+        .filter(Boolean);
 
-      // Remove empty interests/goals
-
-      const cleanedInterests =
-        formData.interests
-          .map((item) => item.trim())
-          .filter((item) => item !== "");
-
-
-      const cleanedGoals =
-        formData.goals
-          .map((item) => item.trim())
-          .filter((item) => item !== "");
-
+      const cleanedGoals = formData.goals
+        .map((item) => item.trim())
+        .filter(Boolean);
 
       const payload = {
+        fullName: formData.fullName.trim(),
+        gender: formData.gender,
+        dob: formData.dob,
+        language: formData.language.trim(),
 
-        fullName:
-          formData.fullName,
+        father: formData.father.trim(),
+        mother: formData.mother.trim(),
+        phone: formData.phone.trim(),
+        email: formData.email.trim(),
+        emergencyContact: formData.emergencyContact.trim(),
 
-        gender:
-          formData.gender,
+        school: formData.school.trim(),
+        grade: formData.grade.trim(),
 
-        dob:
-          formData.dob,
+        city: formData.city.trim(),
+        state: formData.state.trim(),
+        address: formData.address.trim(),
 
-        language:
-          formData.language,
-
-
-        father:
-          formData.father,
-
-        mother:
-          formData.mother,
-
-        phone:
-          formData.phone,
-
-        email:
-          formData.email,
-
-        emergencyContact:
-          formData.emergencyContact,
-
-
-        school:
-          formData.school,
-
-        grade:
-          formData.grade,
-
-
-        city:
-          formData.city,
-
-        state:
-          formData.state,
-
-        address:
-          formData.address,
-
-
-        interests:
-          cleanedInterests,
-
-        goals:
-          cleanedGoals,
-
+        interests: cleanedInterests,
+        goals: cleanedGoals,
       };
 
-
-      console.log(
-        "Update Payload:",
-        payload
-      );
-
+      console.log("Saving account:", {
+        childId,
+        payload,
+      });
 
       const response = await fetch(
-
         `${API_URL}/dashboard/account/${childId}`,
-
         {
-
           method: "PUT",
-
           headers: {
-
-            "Content-Type":
-              "application/json",
-
-            Authorization:
-              `Bearer ${token}`,
-
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
           },
-
-          body:
-            JSON.stringify(payload),
-
+          body: JSON.stringify(payload),
         }
-
       );
 
+      const data = await response.json();
 
-      const data =
-        await response.json();
-
-
-      console.log(
-        "Update Account Response:",
-        data
-      );
-
+      console.log("Save status:", response.status);
+      console.log("Save response:", data);
 
       if (!response.ok) {
-
         throw new Error(
-
-          data.message ||
-          "Unable to update account"
-
+          data.message || "Unable to update account"
         );
-
       }
 
-
-      // ============================================
-      // UPDATE UI WITH NEW DATA
-      // ============================================
+      if (!data.data) {
+        throw new Error(
+          "Account updated, but server did not return updated account data."
+        );
+      }
 
       setAccountData(data.data);
 
-
       setSaveMessage(
-        "Account details updated successfully"
+        "Account details updated successfully."
       );
-
-
-      // Close modal shortly after success
 
       setTimeout(() => {
-
         setShowEditModal(false);
-
         setSaveMessage("");
-
       }, 1000);
 
-    }
-
-    catch (err) {
-
-      console.error(
-        "Update Account Error:",
-        err
-      );
+    } catch (err) {
+      console.error("Update Account Error:", err);
 
       setSaveMessage(
-
-        err.message ||
-        "Unable to update account"
-
+        err.message || "Unable to update account"
       );
-
-    }
-
-    finally {
-
+    } finally {
       setSaving(false);
-
     }
-
   };
 
 
@@ -1527,29 +1463,28 @@ function Input({
   onChange,
   type = "text"
 }) {
+  const isPhone =
+    name === "phone" ||
+    name === "emergencyContact";
 
   return (
-
     <div>
-
       <label className="block text-sm font-medium text-gray-700 mb-1">
-
         {label}
-
       </label>
 
       <input
-        type={type}
+        type={isPhone ? "tel" : type}
         name={name}
         value={value || ""}
         onChange={onChange}
+        maxLength={isPhone ? 10 : undefined}
+        inputMode={isPhone ? "numeric" : undefined}
+        pattern={isPhone ? "[6-9][0-9]{9}" : undefined}
         className="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200"
       />
-
     </div>
-
   );
-
 }
 
 
